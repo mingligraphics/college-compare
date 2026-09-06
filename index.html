@@ -137,6 +137,7 @@ function normalize(r){
     nameEn:r.school_name || "",
     shortName:r.short_name || "",
     city:r.city || "",
+    cityCN:r.city_cn || "",
     state:r.state || "",
     region:r.region || "",
     locationCN:r.location_cn || "",
@@ -157,7 +158,9 @@ function normalize(r){
 }
 
 function money(n){ return n==null ? "" : "$"+Math.round(n).toLocaleString("en-US"); }
+function moneyWanCN(n){ return n==null ? "" : (n/10000).toFixed(1)+"万美元"; }
 function locationText(s){ return s.locationCN || [s.state,s.city].filter(Boolean).join(""); }
+function displayCity(s){ return s.cityCN || s.city; }
 
 function compare(a,b){
   return {
@@ -186,11 +189,11 @@ function summary(a,b){
   const sentences=[];
 
   if(c.sameCity){
-    sentences.push(`${a.name}和${b.name}都位于${a.city}`);
+    sentences.push(`${a.name}和${b.name}都位于${displayCity(a)}`);
   } else if(c.sameRegion){
-    sentences.push(`${a.name}和${b.name}都位于${a.region}，${a.name}在${a.city}，${b.name}在${b.city}`);
+    sentences.push(`${a.name}和${b.name}都位于${a.region}，${a.name}在${displayCity(a)}，${b.name}在${displayCity(b)}`);
   } else if(a.region && b.region){
-    sentences.push(`${a.name}位于${a.region}的${a.city}，${b.name}位于${b.region}的${b.city}`);
+    sentences.push(`${a.name}位于${a.region}的${displayCity(a)}，${b.name}位于${b.region}的${displayCity(b)}`);
   } else {
     sentences.push(`${a.name}位于${locationText(a)}，${b.name}位于${locationText(b)}`);
   }
@@ -203,10 +206,10 @@ function summary(a,b){
 
   if(c.bothCost){
     if(a.coa===b.coa){
-      sentences.push(`费用方面，两校${a.coaYear || b.coaYear || ""}学年的年度总开销都约为${money(a.coa)}`);
+      sentences.push(`费用方面，两校${a.coaYear || b.coaYear || ""}学年的年度总开销都约为${moneyWanCN(a.coa)}`);
     } else {
       const high=a.coa>b.coa?a:b, low=high===a?b:a;
-      sentences.push(`费用方面，${high.name}${high.coaYear ? high.coaYear+"学年" : ""}的年度总开销约为${money(high.coa)}，比${low.name}高约${money(c.costDiff)}`);
+      sentences.push(`费用方面，${high.name}${high.coaYear ? high.coaYear+"学年" : ""}的年度总开销约为${moneyWanCN(high.coa)}，高于${low.name}的${moneyWanCN(low.coa)}`);
     }
   }
 
