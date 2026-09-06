@@ -157,7 +157,7 @@ function normalize(r){
 }
 
 function money(n){ return n==null ? "" : "$"+Math.round(n).toLocaleString("en-US"); }
-function location(s){ return s.locationCN || [s.state,s.city].filter(Boolean).join(""); }
+function locationText(s){ return s.locationCN || [s.state,s.city].filter(Boolean).join(""); }
 
 function compare(a,b){
   return {
@@ -192,7 +192,7 @@ function summary(a,b){
   } else if(a.region && b.region){
     sentences.push(`${a.name}位于${a.region}的${a.city}，${b.name}位于${b.region}的${b.city}`);
   } else {
-    sentences.push(`${a.name}位于${location(a)}，${b.name}位于${location(b)}`);
+    sentences.push(`${a.name}位于${locationText(a)}，${b.name}位于${locationText(b)}`);
   }
 
   if(a.schoolType && b.schoolType){
@@ -242,7 +242,7 @@ function card(s){
   return `<section class="school">
     <h2>${s.name}</h2>
     <dl>
-      ${row("地理位置",location(s))}
+      ${row("地理位置",locationText(s))}
       ${row("美国地区",s.region)}
       ${row("学校性质",s.schoolType)}
       ${row("本科生规模",enrollment)}
