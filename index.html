@@ -1,0 +1,313 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>选学校</title>
+<style>
+*{box-sizing:border-box}
+body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei","Segoe UI",sans-serif;color:#202020;background:#fafafa;line-height:1.65}
+main{max-width:560px;margin:auto;padding:30px 18px 64px}
+header{padding:8px 2px 16px}
+h1{font-size:30px;letter-spacing:-.5px;margin:0 0 5px;font-weight:800}
+.tagline{font-size:14px;color:#777;margin:0}
+.picker,.summary,.school{background:#fff;border-radius:18px;box-shadow:0 3px 18px rgba(0,0,0,.055)}
+.picker{padding:18px;margin-top:18px}
+label{display:block;font-size:13px;font-weight:600;margin:12px 0 6px}
+select{width:100%;min-height:48px;border:1px solid #e7e7e7;border-radius:12px;padding:10px 12px;background:#f8f8f8;color:#222;font:inherit}
+button{width:100%;min-height:48px;border:0;border-radius:24px;margin-top:18px;background:#ff2442;color:#fff;font:inherit;font-weight:700;font-size:16px;cursor:pointer}
+button:disabled{opacity:.55;cursor:not-allowed}
+.status,.error{font-size:13px;min-height:18px;margin-top:8px}
+.status{color:#999}.error{color:#b42318}
+.result{display:none}
+.section-label{font-size:13px;color:#999;margin:30px 2px 8px}
+.summary{padding:19px 18px}
+.summary h2{font-size:20px;margin:0 0 10px}
+.summary p{margin:0;font-size:15px}
+.school{padding:20px 18px;margin-top:16px}
+.school h2{font-size:21px;margin:0 0 14px}
+.row{padding:12px 0;border-bottom:1px solid #f0f0f0}
+.row:last-child{border-bottom:0}
+dt{font-size:12px;color:#999;margin-bottom:2px}
+dd{margin:0;font-size:15px;font-weight:500}
+.money{font-size:19px;font-weight:750}
+.sources{margin-top:26px;padding:4px 3px}
+.sources h2{font-size:15px;margin-bottom:6px}
+.muted{color:#999;font-size:12px}
+
+.consult{background:#fff;border-radius:18px;box-shadow:0 3px 18px rgba(0,0,0,.055);padding:20px 18px;margin-top:18px}
+.consult h2{font-size:20px;margin:0 0 10px}
+.consult p{margin:6px 0;font-size:15px}
+.consult .wechat{font-weight:700;margin-top:12px}
+.qr-placeholder{margin-top:14px;width:132px;height:132px;border:1px dashed #d8d8d8;border-radius:14px;display:flex;align-items:center;justify-content:center;color:#aaa;font-size:13px;background:#fafafa}
+
+</style>
+</head>
+<body>
+<main>
+<header>
+  <h1>选学校</h1>
+  <p class="tagline">覆盖美国200所高校真实数据 · 团队成员毕业于常青藤名校</p>
+</header>
+
+<section class="picker">
+  <label for="a">第一所学校</label>
+  <select id="a" disabled><option>正在读取 school.csv…</option></select>
+
+  <label for="b">第二所学校</label>
+  <select id="b" disabled><option>正在读取 school.csv…</option></select>
+
+  <button id="go" disabled>开始比较</button>
+  <div class="status" id="status"></div>
+  <div class="error" id="err"></div>
+</section>
+
+<section class="result" id="result">
+  <div class="section-label">选校指南</div>
+  <section class="summary">
+    <h2 id="summaryTitle"></h2>
+    <p id="summaryText"></p>
+  </section>
+
+  <div class="section-label">学校信息</div>
+  <div id="cards"></div>
+
+  <div class="section-label">个性化申请支持</div>
+  <section class="consult">
+    <h2>还在纠结选校？</h2>
+    <p>我们也提供个性化选校与文书支持。</p>
+    <p>团队成员毕业于常青藤名校，有多年国际教育、写作与申请研究经验。</p>
+    <p>添加微信了解更多</p>
+    <p class="wechat">微信：XXXXXX</p>
+    <div class="qr-placeholder">二维码</div>
+  </section>
+
+  <section class="sources">
+    <h2>数据说明</h2>
+    <p class="muted">本页直接读取同一 GitHub repository 中的 school.csv。新增学校或更新数据后，只需更新 CSV；页面逻辑无需修改。</p>
+  </section>
+</section>
+</main>
+
+<script>
+const DATA_URL = "./school.csv";
+let schools = {};
+
+function parseCSV(text){
+  const rows=[]; let row=[], cell="", quoted=false;
+  for(let i=0;i<text.length;i++){
+    const ch=text[i], next=text[i+1];
+    if(ch === '"'){
+      if(quoted && next === '"'){ cell += '"'; i++; }
+      else quoted = !quoted;
+    } else if(ch === ',' && !quoted){
+      row.push(cell); cell="";
+    } else if((ch === '\n' || ch === '\r') && !quoted){
+      if(ch === '\r' && next === '\n') i++;
+      row.push(cell); cell="";
+      if(row.some(v=>v.trim()!=="")) rows.push(row);
+      row=[];
+    } else cell += ch;
+  }
+  if(cell.length || row.length){ row.push(cell); if(row.some(v=>v.trim()!=="")) rows.push(row); }
+  if(!rows.length) return [];
+  const headers=rows.shift().map(h=>h.replace(/^\uFEFF/,"").trim());
+  return rows.map(r=>{
+    const obj={};
+    headers.forEach((h,i)=>obj[h]=(r[i]??"").trim());
+    return obj;
+  });
+}
+
+function num(v){
+  if(v==="" || v==null) return null;
+  const n=Number(String(v).replace(/[$,%\s,]/g,""));
+  return Number.isFinite(n) ? n : null;
+}
+
+function list(v){
+  if(!v) return [];
+  return v.split(/\s*[;|｜、]\s*/).map(x=>x.trim()).filter(Boolean);
+}
+
+function normalize(r){
+  return {
+    id:r.school_id,
+    name:r.school_name_cn || r.school_name || r.school_id,
+    nameEn:r.school_name || "",
+    shortName:r.short_name || "",
+    city:r.city || "",
+    state:r.state || "",
+    region:r.region || "",
+    locationCN:r.location_cn || "",
+    schoolType:r.school_type || "",
+    tuition:num(r.tuition),
+    tuitionYear:r.tuition_year || "",
+    coa:num(r.coa),
+    coaYear:r.coa_year || "",
+    undergrad:num(r.undergrad_enrollment),
+    firstYear:num(r.first_year_enrollment),
+    internationalPct:r.international_pct || "",
+    campusType:r.campus_type || "",
+    campusCN:r.campus_description_cn || r.campus_description || "",
+    majors:list(r.famous_majors_cn || r.famous_majors),
+    career:r.career_model_cn || r.career_model || "",
+    alumni:list(r.notable_alumni_cn || r.notable_alumni)
+  };
+}
+
+function money(n){ return n==null ? "" : "$"+Math.round(n).toLocaleString("en-US"); }
+function location(s){ return s.locationCN || [s.state,s.city].filter(Boolean).join(""); }
+
+function compare(a,b){
+  return {
+    sameRegion:!!a.region && a.region===b.region,
+    sameCity:!!a.city && a.city===b.city,
+    sameType:!!a.schoolType && a.schoolType===b.schoolType,
+    bothCost:a.coa!=null && b.coa!=null,
+    costDiff:(a.coa!=null && b.coa!=null)?Math.abs(a.coa-b.coa):null,
+    majorOverlap:a.majors.filter(m=>b.majors.includes(m)),
+    onlyA:a.majors.filter(m=>!b.majors.includes(m)),
+    onlyB:b.majors.filter(m=>!a.majors.includes(m))
+  };
+}
+
+/*
+Summary order:
+1. Location
+2. Public/private
+3. Total cost
+4. Famous-major overlap/differences
+
+The program decides the facts first, then turns them into one natural paragraph.
+*/
+function summary(a,b){
+  const c=compare(a,b);
+  const sentences=[];
+
+  if(c.sameCity){
+    sentences.push(`${a.name}和${b.name}都位于${a.city}`);
+  } else if(c.sameRegion){
+    sentences.push(`${a.name}和${b.name}都位于${a.region}，${a.name}在${a.city}，${b.name}在${b.city}`);
+  } else if(a.region && b.region){
+    sentences.push(`${a.name}位于${a.region}的${a.city}，${b.name}位于${b.region}的${b.city}`);
+  } else {
+    sentences.push(`${a.name}位于${location(a)}，${b.name}位于${location(b)}`);
+  }
+
+  if(a.schoolType && b.schoolType){
+    sentences.push(c.sameType
+      ? `两所学校都是${a.schoolType}`
+      : `${a.name}是${a.schoolType}，而${b.name}是${b.schoolType}`);
+  }
+
+  if(c.bothCost){
+    if(a.coa===b.coa){
+      sentences.push(`费用方面，两校${a.coaYear || b.coaYear || ""}学年的年度总开销都约为${money(a.coa)}`);
+    } else {
+      const high=a.coa>b.coa?a:b, low=high===a?b:a;
+      sentences.push(`费用方面，${high.name}${high.coaYear ? high.coaYear+"学年" : ""}的年度总开销约为${money(high.coa)}，比${low.name}高约${money(c.costDiff)}`);
+    }
+  }
+
+  if(a.majors.length && b.majors.length){
+    let s=c.majorOverlap.length
+      ? `专业上，两校都在${c.majorOverlap.join("、")}等领域有较强项目`
+      : `专业上，两校目前列出的明星专业没有明显重合`;
+
+    if(c.onlyA.length && c.onlyB.length){
+      s += `，但${a.name}在${c.onlyA.join("、")}等方向更有代表性，而${b.name}则在${c.onlyB.join("、")}等领域更突出`;
+    } else if(c.onlyA.length){
+      s += `，此外${a.name}在${c.onlyA.join("、")}等方向更有代表性`;
+    } else if(c.onlyB.length){
+      s += `，此外${b.name}在${c.onlyB.join("、")}等方向更有代表性`;
+    }
+    sentences.push(s);
+  }
+
+  return sentences.join("。")+"。";
+}
+
+function row(label,value,cls=""){
+  if(value==="" || value==null || (Array.isArray(value)&&!value.length)) return "";
+  const shown=Array.isArray(value)?value.join(" · "):value;
+  return `<div class="row"><dt>${label}</dt><dd class="${cls}">${shown}</dd></div>`;
+}
+
+function card(s){
+  const enrollment=s.undergrad!=null
+    ? s.undergrad.toLocaleString("en-US")
+    : (s.firstYear!=null ? `${s.firstYear.toLocaleString("en-US")}（新生人数）` : "");
+
+  return `<section class="school">
+    <h2>${s.name}</h2>
+    <dl>
+      ${row("地理位置",location(s))}
+      ${row("美国地区",s.region)}
+      ${row("学校性质",s.schoolType)}
+      ${row("本科生规模",enrollment)}
+      ${row(s.tuitionYear ? `${s.tuitionYear} 学年学费` : "学费",money(s.tuition),"money")}
+      ${row(s.coaYear ? `${s.coaYear} 学年总开销` : "总开销",money(s.coa),"money")}
+      ${row("明星专业",s.majors)}
+      ${row("国际生",s.internationalPct)}
+      ${row("校园",s.campusCN || s.campusType)}
+      ${row("职业特色",s.career)}
+      ${row("知名校友",s.alumni)}
+    </dl>
+  </section>`;
+}
+
+function fillSelectors(list){
+  const options=list.map(s=>`<option value="${s.id}">${s.name}</option>`).join("");
+  const a=document.getElementById("a"), b=document.getElementById("b");
+  a.innerHTML=options; b.innerHTML=options;
+  a.disabled=false; b.disabled=false;
+  if(list.length>1) b.selectedIndex=1;
+  document.getElementById("go").disabled=list.length<2;
+}
+
+async function loadData(){
+  const status=document.getElementById("status");
+  const err=document.getElementById("err");
+  status.textContent="正在读取学校数据…";
+  try{
+    const res=await fetch(DATA_URL+"?v="+Date.now(),{cache:"no-store"});
+    if(!res.ok) throw new Error(`HTTP ${res.status}`);
+    const records=parseCSV(await res.text());
+    const list=records.map(normalize).filter(s=>s.id && s.name);
+    schools=Object.fromEntries(list.map(s=>[s.id,s]));
+    fillSelectors(list);
+    status.textContent=`已读取 ${list.length} 所学校`;
+    if(list.length<2) err.textContent="当前数据库只有一所学校；加入第二所学校后即可开始比较。";
+  } catch(e){
+    console.error(e);
+    status.textContent="";
+    err.textContent="school.csv 读取失败。请确认它与 index.html 位于同一 GitHub repository 的同一目录。";
+  }
+}
+
+document.getElementById("go").addEventListener("click",()=>{
+  const aid=document.getElementById("a").value;
+  const bid=document.getElementById("b").value;
+  const err=document.getElementById("err");
+  const result=document.getElementById("result");
+
+  if(aid===bid){
+    err.textContent="请选择两所不同的学校";
+    result.style.display="none";
+    return;
+  }
+
+  err.textContent="";
+  const a=schools[aid], b=schools[bid];
+  document.getElementById("summaryTitle").textContent=`${a.name} vs ${b.name}`;
+  document.getElementById("summaryText").textContent=summary(a,b);
+  document.getElementById("cards").innerHTML=card(a)+card(b);
+  result.style.display="block";
+  result.scrollIntoView({behavior:"smooth"});
+});
+
+loadData();
+</script>
+</body>
+</html>
