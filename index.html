@@ -3,13 +3,13 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>选学校</title>
+<title>美国大学选校对比</title>
 <style>
 *{box-sizing:border-box}
 body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei","Segoe UI",sans-serif;color:#202020;background:#fafafa;line-height:1.65}
 main{max-width:560px;margin:auto;padding:30px 18px 64px}
 header{padding:8px 2px 16px}
-h1{font-size:30px;letter-spacing:-.5px;margin:0 0 5px;font-weight:800}
+h1{font-size:30px;letter-spacing:-.5px;margin:0 0 5px;font-weight:800}.site-title{display:flex;align-items:center;gap:9px}.cap-icon{width:32px;height:32px;display:inline-flex;flex:0 0 auto}.cap-icon svg{width:100%;height:100%;fill:#202020}
 .tagline{font-size:14px;color:#777;margin:0}
 .picker,.summary,.school{background:#fff;border-radius:18px;box-shadow:0 3px 18px rgba(0,0,0,.055)}
 .picker{padding:18px;margin-top:18px}
@@ -39,14 +39,14 @@ dd{margin:0;font-size:15px;font-weight:500}
 .consult h2{font-size:20px;margin:0 0 10px}
 .consult p{margin:6px 0;font-size:15px}
 .consult .wechat{font-weight:700;margin-top:12px}
-.qr-image{display:block;margin-top:14px;width:min(100%,320px);height:auto;border-radius:14px;border:1px solid #eee;background:#fff}
+.qr-image{display:block;margin-top:14px;width:min(100%,220px);height:auto;border-radius:14px;border:1px solid #eee;background:#fff}
 
 </style>
 </head>
 <body>
 <main>
 <header>
-  <h1>选学校</h1>
+  <h1 class="site-title"><span class="cap-icon" aria-hidden="true"><svg viewBox="0 0 64 64" focusable="false"><path d="M4 24 32 10l28 14-28 14L4 24Zm12 7.5V43c0 5 7.2 9 16 9s16-4 16-9V31.5L32 40 16 31.5Zm39-3.2v15.8c0 1.6 1.3 2.9 2.9 2.9s2.9-1.3 2.9-2.9V25.4L55 28.3Z"/></svg></span><span>美国大学选校对比</span></h1>
   <p class="tagline">覆盖美国200所高校真实数据 · 团队成员毕业于常青藤名校</p>
 </header>
 
@@ -74,11 +74,8 @@ dd{margin:0;font-size:15px;font-weight:500}
 
   <div class="section-label">个性化申请支持</div>
   <section class="consult">
-    <h2>还在纠结选校？</h2>
-    <p>我们也提供个性化选校与文书支持。</p>
-    <p>团队成员毕业于常青藤名校，有多年国际教育、写作与申请研究经验。</p>
-    <p>添加微信了解更多</p>
-    <p class="wechat">微信：扫码添加</p>
+    <p>我们提供个性化选校与文书服务。</p>
+    <p>团队成员毕业于常青藤名校，多年国际教育、写作与申请经验。</p>
     <img class="qr-image" src="./wechat-qr.jpeg" alt="微信二维码">
   </section>
 
@@ -91,10 +88,8 @@ dd{margin:0;font-size:15px;font-weight:500}
 
 <script>
 const DATA_URL = "./school.csv";
-const FX_URL = "https://www.currencyexchangetool.com/api/v1/convert?amount=1&from=USD&to=CNY";
 let schools = {};
-let usdCny = null;
-let fxUpdatedAt = null;
+const USD_CNY_RATE = 7;
 
 function parseCSV(text){
   const rows=[]; let row=[], cell="", quoted=false;
@@ -163,13 +158,7 @@ function normalize(r){
 function money(n){ return n==null ? "" : "$"+Math.round(n).toLocaleString("en-US"); }
 function moneyWanCN(n){ return n==null ? "" : (n/10000).toFixed(1)+"万美元"; }
 function moneyRmbWan(n){
-  if(n==null || usdCny==null) return "";
-  return ((n*usdCny)/10000).toFixed(1)+"万元";
-}
-function moneyDual(n){
-  if(n==null) return "";
-  const rmb = moneyRmbWan(n);
-  return rmb ? `${money(n)} · 约${rmb}` : money(n);
+  return n==null ? "" : ((n*USD_CNY_RATE)/10000).toFixed(1)+"万元";
 }
 function locationText(s){ return s.locationCN || [s.state,s.city].filter(Boolean).join(""); }
 function displayCity(s){ return s.cityCN || s.city; }
@@ -218,10 +207,10 @@ function summary(a,b){
 
   if(c.bothCost){
     if(a.coa===b.coa){
-      sentences.push(`费用方面，两校${a.coaYear || b.coaYear || ""}学年的年度总开销都约为${moneyWanCN(a.coa)}${moneyRmbWan(a.coa) ? `（按当前汇率约${moneyRmbWan(a.coa)}人民币）` : ""}`);
+      sentences.push(`费用方面，两校${a.coaYear || b.coaYear || ""}学年的年度总开销都约为${moneyWanCN(a.coa)}，按1美元兑7元人民币折算，约为${moneyRmbWan(a.coa)}人民币`);
     } else {
       const high=a.coa>b.coa?a:b, low=high===a?b:a;
-      sentences.push(`费用方面，${high.name}${high.coaYear ? high.coaYear+"学年" : ""}的年度总开销约为${moneyWanCN(high.coa)}${moneyRmbWan(high.coa) ? `（约${moneyRmbWan(high.coa)}人民币）` : ""}，高于${low.name}的${moneyWanCN(low.coa)}${moneyRmbWan(low.coa) ? `（约${moneyRmbWan(low.coa)}人民币）` : ""}`);
+      sentences.push(`费用方面，${high.name}${high.coaYear ? high.coaYear+"学年" : ""}的年度总开销约为${moneyWanCN(high.coa)}，高于${low.name}的${moneyWanCN(low.coa)}；按1美元兑7元人民币折算，分别约为${moneyRmbWan(high.coa)}和${moneyRmbWan(low.coa)}人民币`);
     }
   }
 
@@ -248,6 +237,10 @@ function row(label,value,cls=""){
   const shown=Array.isArray(value)?value.join(" · "):value;
   return `<div class="row"><dt>${label}</dt><dd class="${cls}">${shown}</dd></div>`;
 }
+function rowAlways(label,value,cls=""){
+  const shown=Array.isArray(value)?value.join(" · "):(value ?? "");
+  return `<div class="row"><dt>${label}</dt><dd class="${cls}">${shown}</dd></div>`;
+}
 
 function card(s){
   const enrollment=s.undergrad!=null
@@ -262,12 +255,12 @@ function card(s){
       ${row("学校性质",s.schoolType)}
       ${row("本科生规模",enrollment)}
       ${row(s.tuitionYear ? `${s.tuitionYear} 学年学费` : "学费",money(s.tuition),"money")}
-      ${row(s.coaYear ? `${s.coaYear} 学年总开销` : "总开销",moneyDual(s.coa),"money")}
-      ${row("明星专业",s.majors)}
+      ${row(s.coaYear ? `${s.coaYear} 学年总开销` : "总开销",money(s.coa),"money")}
+      ${rowAlways("明星专业",s.majors)}
       ${row("国际生",s.internationalPct)}
       ${row("校园",s.campusCN || s.campusType)}
       ${row("职业特色",s.career)}
-      ${row("知名校友",s.alumni)}
+      ${rowAlways("知名校友",s.alumni)}
     </dl>
   </section>`;
 }
