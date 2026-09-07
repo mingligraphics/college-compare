@@ -39,7 +39,140 @@ dd{margin:0;font-size:15px;font-weight:500}
 .consult h2{font-size:20px;margin:0 0 10px}
 .consult p{margin:6px 0;font-size:15px}
 .consult .wechat{font-weight:700;margin-top:12px}
-.qr-image{display:block;margin-top:14px;width:min(100%,220px);height:auto;border-radius:14px;border:1px solid #eee;background:#fff}
+
+
+
+/* 2026 visual refinement */
+:root{
+  --text:#111111;
+  --muted:#666666;
+  --weak:#999999;
+  --line:#eeeeee;
+  --bg:#fafafa;
+  --brand:#ff2442;
+}
+body{
+  background:var(--bg);
+  color:var(--text);
+}
+main,.container,.wrap{
+  max-width:560px;
+}
+.section{
+  background:transparent !important;
+  border:none !important;
+  box-shadow:none !important;
+}
+.section + .section{
+  border-top:1px solid var(--line) !important;
+  margin-top:34px;
+  padding-top:34px;
+}
+#summarySection{
+  margin-top:30px;
+}
+#summarySection h2,
+.summary-title,
+.guide-title{
+  font-size:24px !important;
+  line-height:1.25;
+  letter-spacing:-0.02em;
+  margin-bottom:16px !important;
+}
+#summaryText,
+.summary-text{
+  font-size:17px !important;
+  line-height:1.8 !important;
+  color:var(--text) !important;
+}
+.school-section{
+  padding:0 !important;
+  margin:0 !important;
+  background:transparent !important;
+  box-shadow:none !important;
+  border:none !important;
+}
+.school-section + .school-section{
+  border-top:1px solid var(--line);
+  margin-top:34px !important;
+  padding-top:34px !important;
+}
+.school-section h3,
+.school-name{
+  font-size:22px !important;
+  margin-bottom:18px !important;
+}
+.info-group{
+  margin:22px 0 0;
+}
+.info-group-title{
+  font-size:13px;
+  font-weight:700;
+  color:var(--weak);
+  letter-spacing:.08em;
+  margin:0 0 10px;
+}
+.info-row{
+  display:grid;
+  grid-template-columns:112px 1fr;
+  gap:14px;
+  padding:10px 0;
+  border-bottom:1px solid #f3f3f3;
+}
+.info-row:last-child{border-bottom:none}
+.info-label{
+  color:var(--muted);
+  font-size:14px;
+}
+.info-value{
+  color:var(--text);
+  font-size:15px;
+  line-height:1.6;
+}
+.money-rmb{
+  font-weight:700;
+}
+.consult-card{
+  background:#fffaf3 !important;
+  border:1px solid #f3eadc !important;
+  box-shadow:none !important;
+  border-radius:12px !important;
+  padding:20px !important;
+}
+.consult-card h3{
+  margin:0 0 8px !important;
+  font-size:19px !important;
+}
+.consult-card .consult-lead{
+  font-size:16px;
+  line-height:1.7;
+  margin:0 0 6px;
+}
+.consult-card .consult-proof{
+  font-size:13px;
+  color:var(--muted);
+  line-height:1.65;
+  margin:0;
+}
+.qr-crop{
+  width:176px;
+  height:176px;
+  overflow:hidden;
+  margin-top:16px;
+  border-radius:10px;
+  background:#fff;
+}
+.qr-crop img{
+  width:230px;
+  height:auto;
+  display:block;
+  transform:translate(-27px,-72px);
+}
+.data-note,.muted{
+  color:var(--weak) !important;
+  font-size:12px !important;
+  line-height:1.7 !important;
+}
 
 </style>
 </head>
@@ -76,7 +209,7 @@ dd{margin:0;font-size:15px;font-weight:500}
   <section class="consult">
     <p>我们提供个性化选校与文书服务。</p>
     <p>团队成员毕业于常青藤名校，多年国际教育、写作与申请经验。</p>
-    <img class="qr-image" src="./wechat-qr.jpeg" alt="微信二维码">
+    <div class="qr-crop"><img src="./wechat-qr.jpeg" alt="微信二维码"></div>
   </section>
 
   <section class="sources">
@@ -157,9 +290,7 @@ function normalize(r){
 
 function money(n){ return n==null ? "" : "$"+Math.round(n).toLocaleString("en-US"); }
 function moneyWanCN(n){ return n==null ? "" : (n/10000).toFixed(1)+"万美元"; }
-function moneyRmbWan(n){
-  return n==null ? "" : ((n*USD_CNY_RATE)/10000).toFixed(1)+"万元";
-}
+function moneyRmbWan(n){ return n==null ? "" : (n*7/10000).toFixed(1)+"万元人民币"; }
 function locationText(s){ return s.locationCN || [s.state,s.city].filter(Boolean).join(""); }
 function displayCity(s){ return s.cityCN || s.city; }
 
@@ -207,10 +338,10 @@ function summary(a,b){
 
   if(c.bothCost){
     if(a.coa===b.coa){
-      sentences.push(`费用方面，两校${a.coaYear || b.coaYear || ""}学年的年度总开销都约为${moneyWanCN(a.coa)}，按1美元兑7元人民币折算，约为${moneyRmbWan(a.coa)}人民币`);
+      sentences.push(`费用方面，两校${a.coaYear || b.coaYear || ""}学年的年度总开销都约为${moneyWanCN(a.coa)}，折合约${moneyRmbWan(a.coa)}。`);
     } else {
       const high=a.coa>b.coa?a:b, low=high===a?b:a;
-      sentences.push(`费用方面，${high.name}${high.coaYear ? high.coaYear+"学年" : ""}的年度总开销约为${moneyWanCN(high.coa)}，高于${low.name}的${moneyWanCN(low.coa)}；按1美元兑7元人民币折算，分别约为${moneyRmbWan(high.coa)}和${moneyRmbWan(low.coa)}人民币`);
+      sentences.push(`费用方面，${high.name}${high.coaYear ? high.coaYear+"学年" : ""}的年度总开销约为${moneyWanCN(high.coa)}，折合约${moneyRmbWan(high.coa)}；${low.name}约为${moneyWanCN(low.coa)}，折合约${moneyRmbWan(low.coa)}。`);
     }
   }
 
