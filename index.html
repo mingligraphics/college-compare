@@ -39,7 +39,7 @@ dd{margin:0;font-size:15px;font-weight:500}
 .consult h2{font-size:20px;margin:0 0 10px}
 .consult p{margin:6px 0;font-size:15px}
 .consult .wechat{font-weight:700;margin-top:12px}
-.qr-placeholder{margin-top:14px;width:132px;height:132px;border:1px dashed #d8d8d8;border-radius:14px;display:flex;align-items:center;justify-content:center;color:#aaa;font-size:13px;background:#fafafa}
+.qr-image{display:block;margin-top:14px;width:min(100%,320px);height:auto;border-radius:14px;border:1px solid #eee;background:#fff}
 
 </style>
 </head>
@@ -78,8 +78,8 @@ dd{margin:0;font-size:15px;font-weight:500}
     <p>我们也提供个性化选校与文书支持。</p>
     <p>团队成员毕业于常青藤名校，有多年国际教育、写作与申请研究经验。</p>
     <p>添加微信了解更多</p>
-    <p class="wechat">微信：XXXXXX</p>
-    <div class="qr-placeholder">二维码</div>
+    <p class="wechat">微信：扫码添加</p>
+    <img class="qr-image" src="./wechat-qr.jpeg" alt="微信二维码">
   </section>
 
   <section class="sources">
@@ -91,7 +91,10 @@ dd{margin:0;font-size:15px;font-weight:500}
 
 <script>
 const DATA_URL = "./school.csv";
+const FX_URL = "https://www.currencyexchangetool.com/api/v1/convert?amount=1&from=USD&to=CNY";
 let schools = {};
+let usdCny = null;
+let fxUpdatedAt = null;
 
 function parseCSV(text){
   const rows=[]; let row=[], cell="", quoted=false;
@@ -159,6 +162,15 @@ function normalize(r){
 
 function money(n){ return n==null ? "" : "$"+Math.round(n).toLocaleString("en-US"); }
 function moneyWanCN(n){ return n==null ? "" : (n/10000).toFixed(1)+"万美元"; }
+function moneyRmbWan(n){
+  if(n==null || usdCny==null) return "";
+  return ((n*usdCny)/10000).toFixed(1)+"万元";
+}
+function moneyDual(n){
+  if(n==null) return "";
+  const rmb = moneyRmbWan(n);
+  return rmb ? `${money(n)} · 约${rmb}` : money(n);
+}
 function locationText(s){ return s.locationCN || [s.state,s.city].filter(Boolean).join(""); }
 function displayCity(s){ return s.cityCN || s.city; }
 
@@ -206,10 +218,10 @@ function summary(a,b){
 
   if(c.bothCost){
     if(a.coa===b.coa){
-      sentences.push(`费用方面，两校${a.coaYear || b.coaYear || ""}学年的年度总开销都约为${moneyWanCN(a.coa)}`);
+      sentences.push(`费用方面，两校${a.coaYear || b.coaYear || ""}学年的年度总开销都约为${moneyWanCN(a.coa)}${moneyRmbWan(a.coa) ? `（按当前汇率约${moneyRmbWan(a.coa)}人民币）` : ""}`);
     } else {
       const high=a.coa>b.coa?a:b, low=high===a?b:a;
-      sentences.push(`费用方面，${high.name}${high.coaYear ? high.coaYear+"学年" : ""}的年度总开销约为${moneyWanCN(high.coa)}，高于${low.name}的${moneyWanCN(low.coa)}`);
+      sentences.push(`费用方面，${high.name}${high.coaYear ? high.coaYear+"学年" : ""}的年度总开销约为${moneyWanCN(high.coa)}${moneyRmbWan(high.coa) ? `（约${moneyRmbWan(high.coa)}人民币）` : ""}，高于${low.name}的${moneyWanCN(low.coa)}${moneyRmbWan(low.coa) ? `（约${moneyRmbWan(low.coa)}人民币）` : ""}`);
     }
   }
 
@@ -250,7 +262,7 @@ function card(s){
       ${row("学校性质",s.schoolType)}
       ${row("本科生规模",enrollment)}
       ${row(s.tuitionYear ? `${s.tuitionYear} 学年学费` : "学费",money(s.tuition),"money")}
-      ${row(s.coaYear ? `${s.coaYear} 学年总开销` : "总开销",money(s.coa),"money")}
+      ${row(s.coaYear ? `${s.coaYear} 学年总开销` : "总开销",moneyDual(s.coa),"money")}
       ${row("明星专业",s.majors)}
       ${row("国际生",s.internationalPct)}
       ${row("校园",s.campusCN || s.campusType)}
