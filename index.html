@@ -18,7 +18,7 @@ select{width:100%;min-height:48px;border:1px solid #e7e7e7;border-radius:12px;pa
 button{width:100%;min-height:48px;border:0;border-radius:24px;margin-top:18px;background:#ff2442;color:#fff;font:inherit;font-weight:700;font-size:16px;cursor:pointer}
 button:disabled{opacity:.55;cursor:not-allowed}
 .status,.error{font-size:13px;min-height:18px;margin-top:8px}
-.status{color:#999}.error{color:#b42318}
+.status{display:none!important}.error{color:#b42318}
 .result{display:none}
 .section-label{font-size:13px;color:#999;margin:30px 2px 8px}
 .summary{padding:19px 18px}
@@ -306,6 +306,7 @@ h1{
   <select id="b" class="hidden-select" disabled aria-hidden="true" tabindex="-1"><option value="">选择另一所大学</option></select>
 
   <button id="go" disabled>开始比较</button>
+<div class="status" id="status" aria-live="polite"></div>
 <div class="error" id="err"></div>
 </section>
 
