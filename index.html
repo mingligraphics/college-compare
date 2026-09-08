@@ -190,20 +190,68 @@ h1{
   }
 }
 
+
+.compare-vs{
+  text-align:center;
+  font-size:12px;
+  font-weight:700;
+  letter-spacing:.08em;
+  color:#999;
+  margin:8px 0;
+}
+
+
+.subtitle span{
+  display:block;
+}
+.subtitle span + span{
+  margin-top:4px;
+}
+
+
+/* subtler subtitle */
+.subtitle{
+  margin-top:10px !important;
+  color:#888 !important;
+  font-size:13px !important;
+  line-height:1.55 !important;
+  font-weight:400 !important;
+  letter-spacing:0 !important;
+}
+.subtitle span{
+  font-weight:400 !important;
+}
+.subtitle span + span{
+  margin-top:2px !important;
+}
+
+
+/* tighten hero-to-selector spacing */
+.subtitle{
+  margin-bottom:14px !important;
+}
+header{
+  margin-bottom:16px !important;
+}
+.selector-card,
+.compare-box,
+.compare-panel,
+.controls{
+  margin-top:0 !important;
+}
+
 </style>
 </head>
 <body>
 <main>
 <header>
-  <h1 class="site-title"><span class="cap-icon" aria-hidden="true"><svg viewBox="0 0 64 64" focusable="false"><path d="M4 24 32 10l28 14-28 14L4 24Zm12 7.5V43c0 5 7.2 9 16 9s16-4 16-9V31.5L32 40 16 31.5Zm39-3.2v15.8c0 1.6 1.3 2.9 2.9 2.9s2.9-1.3 2.9-2.9V25.4L55 28.3Z"/></svg></span><span>美国大学选校对比</span></h1>
-  <p class="tagline">覆盖美国200所高校真实数据 · 团队成员毕业于常青藤名校</p>
+  <h1 class="site-title"><span class="cap-icon" aria-hidden="true"><svg viewBox="0 0 64 64" focusable="false"><path d="M4 24 32 10l28 14-28 14L4 24Zm12 7.5V43c0 5 7.2 9 16 9s16-4 16-9V31.5L32 40 16 31.5Zm39-3.2v15.8c0 1.6 1.3 2.9 2.9 2.9s2.9-1.3 2.9-2.9V25.4L55 28.3Z"/></svg></span><span>美国大学选校对比</span></h1><p class="subtitle"><span>200所美国高校官方数据</span><span>用数据，找到更适合你的大学</span></p>
+  <p class="tagline"> · </p>
 </header>
 
 <section class="picker">
-  <label for="a">第一所学校</label>
   <select id="a" disabled><option>正在读取 school.csv…</option></select>
 
-  <label for="b">第二所学校</label>
   <select id="b" disabled><option>正在读取 school.csv…</option></select>
 
   <button id="go" disabled>开始比较</button>
@@ -215,7 +263,7 @@ h1{
   <div class="section-label">选校指南</div>
   <section class="summary">
     <h2 id="summaryTitle"></h2>
-    <p id="summaryText"></p>
+    
   </section>
 
   <div class="section-label">学校信息</div>
@@ -224,7 +272,7 @@ h1{
   <div class="section-label">个性化申请支持</div>
   <section class="consult">
     <p>我们提供个性化选校与文书服务。</p><p class="consult-proof">团队成员毕业于常青藤名校，多年国际教育、写作与申请经验。</p>
-    <p></p>
+    
     <div class="qr-crop"><img src="./wechat-qr.jpeg" alt="微信二维码"></div>
   </section>
 
@@ -415,7 +463,7 @@ function card(s){
 function fillSelectors(list){
   const options=list.map(s=>`<option value="${s.id}">${s.name}</option>`).join("");
   const a=document.getElementById("a"), b=document.getElementById("b");
-  a.innerHTML=options; b.innerHTML=options;
+  a.innerHTML=`<option value="">选择一所大学</option>`+options; b.innerHTML=`<option value="">选择另一所大学</option>`+options;
   a.disabled=false; b.disabled=false;
   if(list.length>1) b.selectedIndex=1;
   document.getElementById("go").disabled=list.length<2;
