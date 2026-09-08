@@ -290,6 +290,30 @@ h1{
   color:#777;
 }
 
+/* v19 — metric-first two-school comparison */
+.compare-detail{margin-top:0}
+.compare-sticky{position:sticky;top:0;z-index:20;display:grid;grid-template-columns:1fr 1fr;background:rgba(250,250,250,.96);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border-bottom:1px solid #e8e8e8;padding:10px 0 9px;margin:0 0 4px}
+.compare-school-head{min-width:0;padding:0 12px}
+.compare-school-head:first-child{border-right:1px solid #e8e8e8}
+.compare-school-short{display:block;font-size:15px;font-weight:750;line-height:1.25;color:#111;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.compare-school-cn{display:block;font-size:11px;color:#888;line-height:1.35;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.metric{padding:18px 0;border-bottom:1px solid #ededed}
+.metric:last-child{border-bottom:0}
+.metric-title{font-size:13px;font-weight:700;color:#777;margin:0 0 10px}
+.metric-cols{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr)}
+.metric-cell{min-width:0;padding:0 12px;font-size:15px;line-height:1.55;color:#111;overflow-wrap:anywhere}
+.metric-cell:first-child{border-right:1px solid #f0f0f0}
+.metric-value{font-weight:550}
+.metric-money{font-size:18px;font-weight:750;line-height:1.35}
+.metric-sub{display:block;font-size:12px;color:#888;margin-top:3px;font-weight:400}
+.metric-insight{font-size:12px;color:#777;margin:9px 12px 0;line-height:1.55}
+.metric-long .metric-cols{display:block}
+.metric-long .metric-cell{padding:0 12px;border-right:0}
+.metric-long .metric-cell + .metric-cell{border-top:1px solid #f3f3f3;margin-top:13px;padding-top:13px}
+.metric-school-label{display:block;font-size:11px;font-weight:700;color:#999;margin-bottom:4px}
+.metric-empty{color:#bbb;font-weight:400}
+@media(min-width:520px){.metric-long .metric-cols{display:grid}.metric-long .metric-cell + .metric-cell{border-top:0;margin-top:0;padding-top:0}.metric-long .metric-cell:first-child{border-right:1px solid #f0f0f0}}
+
 </style>
 </head>
 <body>
@@ -317,7 +341,7 @@ h1{
     <p id="summaryText"></p>
   </section>
 
-  <div class="section-label">学校信息</div>
+  <div class="section-label">学校对比</div>
   <div id="cards"></div>
 
   <div class="section-label">个性化申请支持</div>
@@ -489,37 +513,58 @@ function summary(a,b){
   return sentences.map(s=>s.replace(/[。；;，,]+$/,"")).join("。")+"。";
 }
 
-function row(label,value,cls=""){
-  if(value==="" || value==null || (Array.isArray(value)&&!value.length)) return "";
-  const shown=Array.isArray(value)?value.join(" · "):value;
-  return `<div class="row"><dt>${label}</dt><dd class="${cls}">${shown}</dd></div>`;
+function esc(v){
+  return String(v ?? "").replace(/[&<>"]/g,ch=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[ch]));
 }
-function rowAlways(label,value,cls=""){
-  const shown=Array.isArray(value)?value.join(" · "):(value ?? "");
-  return `<div class="row"><dt>${label}</dt><dd class="${cls}">${shown}</dd></div>`;
+function enrollmentText(s){
+  if(s.undergrad!=null) return s.undergrad.toLocaleString("en-US");
+  if(s.firstYear!=null) return `${s.firstYear.toLocaleString("en-US")}（新生人数）`;
+  return "";
 }
-
-function card(s){
-  const enrollment=s.undergrad!=null
-    ? s.undergrad.toLocaleString("en-US")
-    : (s.firstYear!=null ? `${s.firstYear.toLocaleString("en-US")}（新生人数）` : "");
-
-  return `<section class="school">
-    <h2>${s.name}</h2>
-    <dl>
-      ${row("地理位置",locationText(s))}
-      ${row("美国地区",s.region)}
-      ${row("学校性质",s.schoolType)}
-      ${row("本科生规模",enrollment)}
-      ${row(s.tuitionYear ? `${s.tuitionYear} 学年学费` : "学费",money(s.tuition),"money")}
-      ${row(s.coaYear ? `${s.coaYear} 学年总开销` : "总开销",money(s.coa),"money")}
-      ${rowAlways("明星专业",s.majors)}
-      ${row("国际生",s.internationalPct)}
-      ${row("校园",s.campusCN || s.campusType)}
-      ${row("职业特色",s.career)}
-      ${rowAlways("知名校友",s.alumni)}
-    </dl>
-  </section>`;
+function cellValue(v,cls=""){
+  const text=Array.isArray(v)?v.join(" · "):v;
+  return `<div class="metric-cell"><span class="metric-value ${cls}">${text ? esc(text) : '<span class="metric-empty">暂无数据</span>'}</span></div>`;
+}
+function metric(title,aValue,bValue,opts={}){
+  const long=opts.long?" metric-long":"";
+  const labels=opts.long
+    ? `<div class="metric-cell"><span class="metric-school-label">${esc(opts.aLabel)}</span><span class="metric-value">${aValue?esc(Array.isArray(aValue)?aValue.join(" · "):aValue):'<span class="metric-empty">暂无数据</span>'}</span></div><div class="metric-cell"><span class="metric-school-label">${esc(opts.bLabel)}</span><span class="metric-value">${bValue?esc(Array.isArray(bValue)?bValue.join(" · "):bValue):'<span class="metric-empty">暂无数据</span>'}</span></div>`
+    : cellValue(aValue,opts.cls||"")+cellValue(bValue,opts.cls||"");
+  return `<section class="metric${long}"><h3 class="metric-title">${esc(title)}</h3><div class="metric-cols">${labels}</div>${opts.insight?`<p class="metric-insight">${esc(opts.insight)}</p>`:""}</section>`;
+}
+function costCell(s){
+  if(s.coa==null) return "";
+  return `${moneyRmbWan(s.coa)}|${moneyWanCN(s.coa)}${s.coaYear?" · "+s.coaYear:""}`;
+}
+function costMetric(a,b){
+  const render=s=>{
+    if(s.coa==null) return `<div class="metric-cell"><span class="metric-empty">暂无数据</span></div>`;
+    return `<div class="metric-cell"><span class="metric-money">${esc(moneyRmbWan(s.coa))}</span><span class="metric-sub">${esc(moneyWanCN(s.coa))}${s.coaYear?" · "+esc(s.coaYear):""}</span></div>`;
+  };
+  let insight="";
+  if(a.coa!=null&&b.coa!=null&&a.coa!==b.coa){
+    const high=a.coa>b.coa?a:b;
+    insight=`${high.shortName||high.name} 年度总开销高约 ${moneyRmbWan(Math.abs(a.coa-b.coa))}`;
+  }
+  return `<section class="metric"><h3 class="metric-title">年度总开销</h3><div class="metric-cols">${render(a)}${render(b)}</div>${insight?`<p class="metric-insight">${esc(insight)}</p>`:""}</section>`;
+}
+function comparisonDetail(a,b){
+  const aHead=a.shortName||a.nameEn||a.name, bHead=b.shortName||b.nameEn||b.name;
+  return `<div class="compare-detail">
+    <div class="compare-sticky">
+      <div class="compare-school-head"><span class="compare-school-short">${esc(aHead)}</span><span class="compare-school-cn">${esc(a.name)}</span></div>
+      <div class="compare-school-head"><span class="compare-school-short">${esc(bHead)}</span><span class="compare-school-cn">${esc(b.name)}</span></div>
+    </div>
+    ${metric("地理位置", [displayCity(a),a.region].filter(Boolean).join(" · "), [displayCity(b),b.region].filter(Boolean).join(" · "))}
+    ${metric("学校性质",a.schoolType,b.schoolType)}
+    ${costMetric(a,b)}
+    ${metric("本科生规模",enrollmentText(a),enrollmentText(b))}
+    ${metric("明星专业",a.majors,b.majors)}
+    ${metric("国际生",a.internationalPct,b.internationalPct)}
+    ${metric("校园特点",a.campusCN||a.campusType,b.campusCN||b.campusType,{long:true,aLabel:aHead,bLabel:bHead})}
+    ${metric("职业特色",a.career,b.career,{long:true,aLabel:aHead,bLabel:bHead})}
+    ${metric("知名校友",a.alumni,b.alumni,{long:true,aLabel:aHead,bLabel:bHead})}
+  </div>`;
 }
 
 function fillSelectors(list){
@@ -581,7 +626,7 @@ document.getElementById("go").addEventListener("click",()=>{
   }
   document.getElementById("summaryTitle").textContent=`${a.name} vs ${b.name}`;
   document.getElementById("summaryText").textContent=summary(a,b);
-  document.getElementById("cards").innerHTML=card(a)+card(b);
+  document.getElementById("cards").innerHTML=comparisonDetail(a,b);
   result.style.display="block";
   result.scrollIntoView({behavior:"smooth"});
 });
