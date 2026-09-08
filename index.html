@@ -240,6 +240,30 @@ header{
   margin-top:0 !important;
 }
 
+
+/* Search-first school selector */
+.hidden-select{position:absolute!important;opacity:0!important;width:1px!important;height:1px!important;pointer-events:none!important}
+.school-trigger{margin-top:0;background:#f8f8f8;color:#777;border:1px solid #e7e7e7;border-radius:12px;padding:10px 12px;font-weight:400;font-size:15px;text-align:left;display:flex;align-items:center;justify-content:space-between}
+.school-trigger.selected{background:#fff;color:#111;font-weight:600}
+.school-trigger:disabled{opacity:.65}
+.chev{color:#aaa;font-size:18px}
+.school-modal{position:fixed;inset:0;z-index:999;background:rgba(0,0,0,.28);display:flex;align-items:flex-end;justify-content:center}
+.school-modal[hidden]{display:none}
+.school-sheet{width:min(100%,560px);max-height:78vh;background:#fff;border-radius:18px 18px 0 0;padding:8px 18px calc(18px + env(safe-area-inset-bottom));overflow:hidden}
+.sheet-handle{width:38px;height:4px;border-radius:99px;background:#ddd;margin:0 auto 10px}
+.sheet-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
+.sheet-head h2{font-size:20px;margin:0}
+.sheet-close{width:auto;min-height:0;margin:0;padding:0 4px;background:transparent;color:#888;border-radius:0;font-size:28px;font-weight:400}
+.school-search{width:100%;height:46px;border:1px solid #e7e7e7;border-radius:11px;padding:0 13px;font-size:15px;background:#fafafa;outline:none}
+.school-search:focus{background:#fff;border-color:#bbb}
+.result-label{font-size:12px;color:#999;margin:18px 2px 8px}
+.school-list{max-height:calc(78vh - 155px);overflow:auto}
+.school-option{width:100%;min-height:0;margin:0;padding:12px 2px;border:0;border-bottom:1px solid #f1f1f1;border-radius:0;background:#fff;color:#111;text-align:left;font-weight:400}
+.school-option-cn{display:block;font-size:15px;font-weight:600}
+.school-option-en{display:block;font-size:12px;color:#888;margin-top:3px}
+.school-empty{padding:24px 2px;text-align:center;color:#999;font-size:14px}
+@media(min-width:700px){.school-modal{align-items:center}.school-sheet{border-radius:18px;max-height:72vh;padding-bottom:18px}.sheet-handle{display:none}}
+
 </style>
 </head>
 <body>
@@ -249,9 +273,11 @@ header{
 </header>
 
 <section class="picker">
-  <select id="a" disabled><option>正在读取 school.csv…</option></select>
-
-  <select id="b" disabled><option>正在读取 school.csv…</option></select>
+  <button type="button" class="school-trigger" id="triggerA" disabled><span id="triggerAText">正在读取 school.csv…</span><span class="chev">⌄</span></button>
+  <div class="compare-vs">VS</div>
+  <button type="button" class="school-trigger" id="triggerB" disabled><span id="triggerBText">正在读取 school.csv…</span><span class="chev">⌄</span></button>
+  <select id="a" class="hidden-select" disabled aria-hidden="true" tabindex="-1"><option value="">选择一所大学</option></select>
+  <select id="b" class="hidden-select" disabled aria-hidden="true" tabindex="-1"><option value="">选择另一所大学</option></select>
 
   <button id="go" disabled>开始比较</button>
   <div class="status" id="status"></div>
@@ -262,7 +288,7 @@ header{
   <div class="section-label">选校指南</div>
   <section class="summary">
     <h2 id="summaryTitle"></h2>
-    
+    <p id="summaryText"></p>
   </section>
 
   <div class="section-label">学校信息</div>
@@ -281,6 +307,17 @@ header{
   </section>
 </section>
 </main>
+
+<div class="school-modal" id="schoolModal" hidden>
+  <div class="school-sheet" role="dialog" aria-modal="true">
+    <div class="sheet-handle"></div>
+    <div class="sheet-head"><h2 id="sheetTitle">选择一所大学</h2><button type="button" id="sheetClose" class="sheet-close">×</button></div>
+    <input type="search" id="schoolSearch" class="school-search" placeholder="搜索学校名称、英文或简称" autocomplete="off">
+    <div class="result-label" id="resultLabel">热门学校</div>
+    <div id="schoolList" class="school-list"></div>
+  </div>
+</div>
+
 
 <script>
 const DATA_URL = "./school.csv";
@@ -464,6 +501,10 @@ function fillSelectors(list){
   const a=document.getElementById("a"), b=document.getElementById("b");
   a.innerHTML=`<option value="">选择一所大学</option>`+options; b.innerHTML=`<option value="">选择另一所大学</option>`+options;
   a.disabled=false; b.disabled=false;
+  document.getElementById("triggerA").disabled=false;
+  document.getElementById("triggerB").disabled=false;
+  document.getElementById("triggerAText").textContent="选择一所大学";
+  document.getElementById("triggerBText").textContent="选择另一所大学";
   document.getElementById("go").disabled=list.length<2;
 }
 
@@ -518,6 +559,64 @@ document.getElementById("go").addEventListener("click",()=>{
   result.style.display="block";
   result.scrollIntoView({behavior:"smooth"});
 });
+
+
+let activeSchoolPicker="";
+const modal=document.getElementById("schoolModal");
+const searchInput=document.getElementById("schoolSearch");
+const schoolList=document.getElementById("schoolList");
+const resultLabel=document.getElementById("resultLabel");
+
+function searchableText(s){
+  return [s.name,s.nameEn,s.shortName,s.city,s.cityCN].filter(Boolean).join(" ").toLowerCase();
+}
+function drawSchoolList(){
+  const q=searchInput.value.trim().toLowerCase();
+  resultLabel.textContent=q ? "搜索结果" : "热门学校";
+  let items=Object.values(schools);
+  if(q) items=items.filter(s=>searchableText(s).includes(q));
+  items=items.slice(0,q?30:10);
+  schoolList.innerHTML="";
+  if(!items.length){ schoolList.innerHTML='<div class="school-empty">没有找到匹配的学校</div>'; return; }
+  items.forEach(s=>{
+    const el=document.createElement("button");
+    el.type="button"; el.className="school-option";
+    const cn=document.createElement("span"); cn.className="school-option-cn"; cn.textContent=s.name;
+    const en=document.createElement("span"); en.className="school-option-en";
+    en.textContent=[s.nameEn,s.shortName].filter(Boolean).join(" · ");
+    el.append(cn,en);
+    el.addEventListener("click",()=>selectSchoolFromPicker(s.id));
+    schoolList.appendChild(el);
+  });
+}
+function openPicker(which){
+  activeSchoolPicker=which;
+  document.getElementById("sheetTitle").textContent=which==="a"?"选择一所大学":"选择另一所大学";
+  searchInput.value="";
+  drawSchoolList();
+  modal.hidden=false;
+  document.body.style.overflow="hidden";
+  setTimeout(()=>searchInput.focus(),50);
+}
+function closePicker(){
+  modal.hidden=true; document.body.style.overflow=""; activeSchoolPicker="";
+}
+function selectSchoolFromPicker(id){
+  const s=schools[id]; if(!s || !activeSchoolPicker) return;
+  const select=document.getElementById(activeSchoolPicker);
+  select.value=id;
+  const isA=activeSchoolPicker==="a";
+  document.getElementById(isA?"triggerAText":"triggerBText").textContent=s.name+(s.shortName?" · "+s.shortName:"");
+  document.getElementById(isA?"triggerA":"triggerB").classList.add("selected");
+  document.getElementById("err").textContent="";
+  closePicker();
+}
+document.getElementById("triggerA").addEventListener("click",()=>openPicker("a"));
+document.getElementById("triggerB").addEventListener("click",()=>openPicker("b"));
+document.getElementById("sheetClose").addEventListener("click",closePicker);
+modal.addEventListener("click",e=>{if(e.target===modal)closePicker()});
+searchInput.addEventListener("input",drawSchoolList);
+document.addEventListener("keydown",e=>{if(e.key==="Escape"&&!modal.hidden)closePicker()});
 
 loadData();
 </script>
