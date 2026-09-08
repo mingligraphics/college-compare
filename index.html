@@ -527,6 +527,8 @@ function cellValue(v,cls=""){
 }
 function metric(title,aValue,bValue,opts={}){
   const long=opts.long?" metric-long":"";
+  const normalizedValue=v=>(Array.isArray(v)?v.filter(x=>String(x ?? "").trim()).join(" · "):String(v ?? "")).trim();
+  aValue=normalizedValue(aValue); bValue=normalizedValue(bValue);
   const labels=opts.long
     ? `<div class="metric-cell"><span class="metric-school-label">${esc(opts.aLabel)}</span><span class="metric-value">${aValue?esc(Array.isArray(aValue)?aValue.join(" · "):aValue):'<span class="metric-empty">暂无数据</span>'}</span></div><div class="metric-cell"><span class="metric-school-label">${esc(opts.bLabel)}</span><span class="metric-value">${bValue?esc(Array.isArray(bValue)?bValue.join(" · "):bValue):'<span class="metric-empty">暂无数据</span>'}</span></div>`
     : cellValue(aValue,opts.cls||"")+cellValue(bValue,opts.cls||"");
@@ -555,8 +557,9 @@ function comparisonDetail(a,b){
       <div class="compare-school-head"><span class="compare-school-short">${esc(aHead)}</span><span class="compare-school-cn">${esc(a.name)}</span></div>
       <div class="compare-school-head"><span class="compare-school-short">${esc(bHead)}</span><span class="compare-school-cn">${esc(b.name)}</span></div>
     </div>
-    ${metric("地理位置", [displayCity(a),a.region].filter(Boolean).join(" · "), [displayCity(b),b.region].filter(Boolean).join(" · "))}
+    ${metric("地理位置", [locationText(a),a.region].filter(Boolean).join(" · "), [locationText(b),b.region].filter(Boolean).join(" · "))}
     ${metric("学校性质",a.schoolType,b.schoolType)}
+    ${metric("学费",a.tuition==null?"":money(a.tuition)+(a.tuitionYear?" · "+a.tuitionYear+" 学年":""),b.tuition==null?"":money(b.tuition)+(b.tuitionYear?" · "+b.tuitionYear+" 学年":""))}
     ${costMetric(a,b)}
     ${metric("本科生规模",enrollmentText(a),enrollmentText(b))}
     ${metric("明星专业",a.majors,b.majors)}
@@ -675,6 +678,7 @@ function closePicker(){
 function selectSchoolFromPicker(id){
   const s=schools[id]; if(!s || !activeSchoolPicker) return;
   const select=document.getElementById(activeSchoolPicker);
+  if(select.value!==id) document.getElementById("result").style.display="none";
   select.value=id;
   const isA=activeSchoolPicker==="a";
   document.getElementById(isA?"triggerAText":"triggerBText").textContent=s.name+(s.shortName?" · "+s.shortName:"");
