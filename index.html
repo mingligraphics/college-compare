@@ -264,6 +264,133 @@ header{
 .school-empty{padding:24px 2px;text-align:center;color:#999;font-size:14px}
 @media(min-width:700px){.school-modal{align-items:center}.school-sheet{border-radius:18px;max-height:72vh;padding-bottom:18px}.sheet-handle{display:none}}
 
+
+/* v15 — editorial visual refinement */
+
+/* 1. Cleaner editorial canvas */
+html, body{
+  background:#fff !important;
+}
+body{
+  color:#111 !important;
+}
+
+/* Keep red primarily for the main CTA */
+.compare-vs,
+.vs{
+  color:#999 !important;
+}
+
+/* 2. Consistent typography */
+h1{
+  font-size:24px !important;
+  line-height:1.22 !important;
+  font-weight:700 !important;
+  letter-spacing:-0.02em !important;
+}
+.subtitle{
+  font-size:13px !important;
+  line-height:1.55 !important;
+  font-weight:400 !important;
+  color:#888 !important;
+}
+.summary h2,
+#summaryTitle{
+  font-size:23px !important;
+  line-height:1.3 !important;
+  font-weight:700 !important;
+  letter-spacing:-0.015em !important;
+}
+.summary p,
+#summaryText{
+  font-size:17px !important;
+  line-height:1.78 !important;
+  color:#222 !important;
+  font-weight:400 !important;
+}
+.school h2{
+  font-weight:700 !important;
+}
+.group-title{
+  font-weight:600 !important;
+}
+.note,
+.notes,
+.source,
+.sources{
+  font-size:12px !important;
+  line-height:1.6 !important;
+  color:#999 !important;
+}
+
+/* 3. Make the guide the visual protagonist */
+.summary{
+  background:transparent !important;
+  border:0 !important;
+  box-shadow:none !important;
+  padding:32px 0 34px !important;
+  margin-top:10px !important;
+}
+.summary h2,
+#summaryTitle{
+  margin:0 0 14px !important;
+}
+.summary p,
+#summaryText{
+  margin:0 !important;
+}
+
+/* 4. School profiles: less settings/table feel */
+.school{
+  background:transparent !important;
+  box-shadow:none !important;
+}
+.school .row,
+.school .info-row,
+.school .detail-row{
+  border-bottom:0 !important;
+}
+.school .group,
+.school .info-group,
+.school .detail-group{
+  border-top:0 !important;
+  border-bottom:0 !important;
+  margin-top:28px !important;
+}
+.school .group + .group,
+.school .info-group + .info-group,
+.school .detail-group + .detail-group{
+  padding-top:22px !important;
+  border-top:1px solid #eee !important;
+}
+
+/* 5. Consultation area: part of the content, not a banner */
+.consult,
+.consult-card,
+.consultation,
+.consultation-card{
+  background:#fff !important;
+  box-shadow:none !important;
+  border:0 !important;
+  border-top:1px solid #eee !important;
+  border-radius:0 !important;
+  margin-top:38px !important;
+  padding:30px 0 0 !important;
+}
+.consult-proof{
+  color:#777 !important;
+  font-size:13px !important;
+  line-height:1.65 !important;
+}
+
+/* Preserve comfortable mobile rhythm */
+@media(max-width:420px){
+  h1{font-size:24px !important}
+  .summary{padding:28px 0 30px !important}
+  .summary h2,#summaryTitle{font-size:22px !important}
+  .summary p,#summaryText{font-size:16.5px !important;line-height:1.78 !important}
+}
+
 </style>
 </head>
 <body>
