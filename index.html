@@ -246,7 +246,6 @@ header{
 <main>
 <header>
   <h1 class="site-title"><span class="cap-icon" aria-hidden="true"><svg viewBox="0 0 64 64" focusable="false"><path d="M4 24 32 10l28 14-28 14L4 24Zm12 7.5V43c0 5 7.2 9 16 9s16-4 16-9V31.5L32 40 16 31.5Zm39-3.2v15.8c0 1.6 1.3 2.9 2.9 2.9s2.9-1.3 2.9-2.9V25.4L55 28.3Z"/></svg></span><span>美国大学选校对比</span></h1><p class="subtitle"><span>200所美国高校官方数据</span><span>用数据，找到更适合你的大学</span></p>
-  <p class="tagline"> · </p>
 </header>
 
 <section class="picker">
@@ -465,7 +464,6 @@ function fillSelectors(list){
   const a=document.getElementById("a"), b=document.getElementById("b");
   a.innerHTML=`<option value="">选择一所大学</option>`+options; b.innerHTML=`<option value="">选择另一所大学</option>`+options;
   a.disabled=false; b.disabled=false;
-  if(list.length>1) b.selectedIndex=1;
   document.getElementById("go").disabled=list.length<2;
 }
 
@@ -495,6 +493,12 @@ document.getElementById("go").addEventListener("click",()=>{
   const err=document.getElementById("err");
   const result=document.getElementById("result");
 
+  if(!aid || !bid){
+    err.textContent="请先选择两所大学";
+    result.style.display="none";
+    return;
+  }
+
   if(aid===bid){
     err.textContent="请选择两所不同的学校";
     result.style.display="none";
@@ -503,6 +507,11 @@ document.getElementById("go").addEventListener("click",()=>{
 
   err.textContent="";
   const a=schools[aid], b=schools[bid];
+  if(!a || !b){
+    err.textContent="学校数据读取异常，请刷新页面后重试";
+    result.style.display="none";
+    return;
+  }
   document.getElementById("summaryTitle").textContent=`${a.name} vs ${b.name}`;
   document.getElementById("summaryText").textContent=summary(a,b);
   document.getElementById("cards").innerHTML=card(a)+card(b);
