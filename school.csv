@@ -1,4 +1,4 @@
-﻿school_id,school_name,school_name_cn,short_name,school_type,city,city_cn,state,location_cn,region,tuition,tuition_year,coa,coa_year,undergrad_enrollment,international_pct,campus_type,campus_description,campus_description_cn,famous_majors,famous_majors_cn,career_model,career_model_cn,notable_alumni
-nyu,New York University,纽约大学,NYU,私立大学,New York,纽约,New York,纽约州纽约,美国东北部,68576,2026-27,100998,2026-27,5723,,,,,,,,,
-bu,Boston University,波士顿大学,BU,私立大学,Boston,波士顿,MA,马萨诸塞州波士顿,美国东北部,48000,2026-27,89000,2026-27,12000,,,,,,,,,
-ucb,"University of California, Berkeley",加州大学伯克利分校,UCB,公立大学,Berkeley,伯克利,CA,加州伯克利,美国西海岸,30000,2026-27,50000,2026-27,20000,,,,,,,,,
+﻿school_id,school_name,school_name_cn,short_name
+nyu,New York University,纽约大学,NYU
+bu,Boston University,波士顿大学,BU
+ucb,"University of California, Berkeley",加州大学伯克利分校,UCB

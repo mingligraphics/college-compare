@@ -353,7 +353,7 @@ h1{
 
   <section class="sources">
     <h2>数据说明</h2>
-    <p class="muted">本页直接读取同一 GitHub repository 中的 school.csv。新增学校或更新数据后，只需更新 CSV；页面逻辑无需修改。</p>
+    <p class="muted">学校目录来自 school.csv，仅包含学校 ID、英文名、中文名和简称。详细比较数据通过服务器接口按所选两所学校获取。</p>
   </section>
 </section>
 </main>
@@ -371,7 +371,10 @@ h1{
 
 <script>
 const DATA_URL = "./school.csv";
+const COMPARE_URL = "https://hmnoqybdcfwqbjhorwzd.supabase.co/functions/v1/compare-schools";
 let schools = {};
+let comparing = false;
+let selectionVersion = 0;
 const USD_CNY_RATE = 7;
 
 function parseCSV(text){
@@ -407,11 +410,13 @@ function num(v){
 }
 
 function list(v){
-  if(!v) return [];
-  return v.split(/\s*[;|｜、]\s*/).map(x=>x.trim()).filter(Boolean);
+  if(!Array.isArray(v)) return [];
+  return v.filter(x=>typeof x==="string").map(x=>x.trim()).filter(Boolean);
 }
 
 function normalize(r){
+  const majorsCN=list(r.famous_majors_cn);
+  const internationalPct=r.international_pct;
   return {
     id:r.school_id,
     name:r.school_name_cn || r.school_name || r.school_id,
@@ -429,10 +434,10 @@ function normalize(r){
     coaYear:r.coa_year || "",
     undergrad:num(r.undergrad_enrollment),
     firstYear:num(r.first_year_enrollment),
-    internationalPct:r.international_pct || "",
+    internationalPct:typeof internationalPct==="number" && Number.isFinite(internationalPct) && internationalPct>=0 && internationalPct<=100 ? `${internationalPct}%` : "",
     campusType:r.campus_type || "",
     campusCN:r.campus_description_cn || r.campus_description || "",
-    majors:list(r.famous_majors_cn || r.famous_majors),
+    majors:majorsCN.length ? majorsCN : list(r.famous_majors),
     career:r.career_model_cn || r.career_model || "",
     alumni:list(r.notable_alumni_cn || r.notable_alumni)
   };
@@ -590,7 +595,12 @@ async function loadData(){
     const res=await fetch(DATA_URL+"?v="+Date.now(),{cache:"no-store"});
     if(!res.ok) throw new Error(`HTTP ${res.status}`);
     const records=parseCSV(await res.text());
-    const list=records.map(normalize).filter(s=>s.id && s.name);
+    const list=records.map(r=>({
+      id:r.school_id,
+      name:r.school_name_cn || r.school_name || r.school_id,
+      nameEn:r.school_name || "",
+      shortName:r.short_name || ""
+    })).filter(s=>s.id && s.name);
     schools=Object.fromEntries(list.map(s=>[s.id,s]));
     fillSelectors(list);
     status.textContent=`已读取 ${list.length} 所学校`;
@@ -602,7 +612,8 @@ async function loadData(){
   }
 }
 
-document.getElementById("go").addEventListener("click",()=>{
+document.getElementById("go").addEventListener("click",async ()=>{
+  if(comparing) return;
   const aid=document.getElementById("a").value;
   const bid=document.getElementById("b").value;
   const err=document.getElementById("err");
@@ -621,17 +632,51 @@ document.getElementById("go").addEventListener("click",()=>{
   }
 
   err.textContent="";
-  const a=schools[aid], b=schools[bid];
-  if(!a || !b){
-    err.textContent="学校数据读取异常，请刷新页面后重试";
-    result.style.display="none";
+  result.style.display="none";
+  if(!schools[aid] || !schools[bid]){
+    err.textContent="学校目录读取异常，请刷新页面后重试";
     return;
   }
-  document.getElementById("summaryTitle").textContent=`${a.name} vs ${b.name}`;
-  document.getElementById("summaryText").textContent=summary(a,b);
-  document.getElementById("cards").innerHTML=comparisonDetail(a,b);
-  result.style.display="block";
-  result.scrollIntoView({behavior:"smooth"});
+  const go=document.getElementById("go");
+  const label=go.textContent;
+  const version=selectionVersion;
+  const controller=new AbortController();
+  const timeout=setTimeout(()=>controller.abort(),15000);
+  comparing=true;
+  go.disabled=true;
+  go.textContent="正在比较…";
+  try{
+    const res=await fetch(COMPARE_URL,{
+      method:"POST",
+      headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({schoolA:aid,schoolB:bid}),
+      signal:controller.signal,
+      cache:"no-store"
+    });
+    if(!res.ok) throw new Error("Comparison request failed");
+    const records=await res.json();
+    if(!Array.isArray(records) || records.length!==2 ||
+       records[0]?.school_id!==aid || records[1]?.school_id!==bid){
+      throw new Error("Invalid comparison response");
+    }
+    if(version!==selectionVersion) return;
+    const [a,b]=records.map(normalize);
+    document.getElementById("summaryTitle").textContent=`${a.name} vs ${b.name}`;
+    document.getElementById("summaryText").textContent=summary(a,b);
+    document.getElementById("cards").innerHTML=comparisonDetail(a,b);
+    result.style.display="block";
+    result.scrollIntoView({behavior:"smooth"});
+  } catch(e){
+    if(version===selectionVersion){
+      result.style.display="none";
+      err.textContent="暂时无法获取比较数据，请稍后重试";
+    }
+  } finally{
+    clearTimeout(timeout);
+    comparing=false;
+    go.disabled=false;
+    go.textContent=label;
+  }
 });
 
 
@@ -642,7 +687,7 @@ const schoolList=document.getElementById("schoolList");
 const resultLabel=document.getElementById("resultLabel");
 
 function searchableText(s){
-  return [s.name,s.nameEn,s.shortName,s.city,s.cityCN].filter(Boolean).join(" ").toLowerCase();
+  return [s.name,s.nameEn,s.shortName].filter(Boolean).join(" ").toLowerCase();
 }
 function drawSchoolList(){
   const q=searchInput.value.trim().toLowerCase();
@@ -678,7 +723,10 @@ function closePicker(){
 function selectSchoolFromPicker(id){
   const s=schools[id]; if(!s || !activeSchoolPicker) return;
   const select=document.getElementById(activeSchoolPicker);
-  if(select.value!==id) document.getElementById("result").style.display="none";
+  if(select.value!==id){
+    selectionVersion++;
+    document.getElementById("result").style.display="none";
+  }
   select.value=id;
   const isA=activeSchoolPicker==="a";
   document.getElementById(isA?"triggerAText":"triggerBText").textContent=s.name+(s.shortName?" · "+s.shortName:"");
