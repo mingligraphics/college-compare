@@ -638,7 +638,6 @@ document.getElementById("go").addEventListener("click",async ()=>{
     return;
   }
   const go=document.getElementById("go");
-  const label=go.textContent;
   const version=selectionVersion;
   const controller=new AbortController();
   const timeout=setTimeout(()=>controller.abort(),15000);
@@ -674,8 +673,8 @@ document.getElementById("go").addEventListener("click",async ()=>{
   } finally{
     clearTimeout(timeout);
     comparing=false;
-    go.disabled=false;
-    go.textContent=label;
+    go.disabled=Object.keys(schools).length<2;
+    go.textContent="开始比较";
   }
 });
 
