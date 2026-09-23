@@ -1,0 +1,27 @@
+# Local Python virtual environments
+.venv/
+.venvs/
+venv/
+venvs/
+env/
+ENV/
+pyvenv.cfg
+
+# Guard against creating a virtual environment at the repository root
+/bin/
+/include/
+/lib/
+/lib64/
+/Scripts/
+
+# Installed Python dependencies and generated caches
+site-packages/
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# macOS metadata
+.DS_Store
