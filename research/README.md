@@ -317,3 +317,10 @@ synthetic fixtures and always run. No factual values are in application logic.
 operations against local mocked Staging rows. It never connects to Google Sheets.
 See [UPLOADER.md](UPLOADER.md) for candidate keys, human-field protection, audit
 reports, the injected Staging-only adapter and the mandatory concurrency guard.
+
+## Approved School publisher
+
+See [PUBLISHER.md](PUBLISHER.md) for the separate, allowlisted School →
+`private.schools` planner, offline dry-run command, transactional PostgreSQL
+adapter, NULL policy, and operator approval/setup requirements. It never
+publishes Staging candidates or modifies the spreadsheet.

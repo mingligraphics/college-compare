@@ -1,0 +1,2 @@
+# Psycopg 3.2 supports the operator's Python 3.9 environment.
+psycopg[binary]>=3.2,<3.3
