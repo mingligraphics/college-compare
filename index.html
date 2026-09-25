@@ -371,7 +371,7 @@ h1{
 
 <script>
 const DATA_URL = "./school.csv";
-const COMPARE_URL = "https://hmnoqybdcfwqbjhorwzd.supabase.co/functions/v1/compare-schools";
+const COMPARE_URL = "https://hmnoqybdcfwqbjhorwzd.supabase.co/functions/v1/compare-schools-basic-v1";
 let schools = {};
 let comparing = false;
 let selectionVersion = 0;
@@ -425,11 +425,11 @@ function normalize(r){
     city:r.city || "",
     cityCN:r.city_cn || "",
     state:r.state || "",
-    region:r.region || "",
+    region:({east_coast:"美国东海岸",south:"美国南部",midwest:"美国中西部",west_coast:"美国西海岸",mountain_west:"美国西部山区",other:"美国其他地区"})[r.region] || "",
     locationCN:r.location_cn || "",
-    schoolType:r.school_type || "",
-    tuition:num(r.tuition),
-    tuitionYear:r.tuition_year || "",
+    schoolType:({public:"公立大学",private_nonprofit:"私立非营利大学",private_forprofit:"私立营利大学"})[r.institution_control] || "",
+    tuition:num(r.tuition_fees),
+    tuitionYear:r.tuition_fees_year || "",
     coa:num(r.coa),
     coaYear:r.coa_year || "",
     undergrad:num(r.undergrad_enrollment),
@@ -564,7 +564,7 @@ function comparisonDetail(a,b){
     </div>
     ${metric("地理位置", [locationText(a),a.region].filter(Boolean).join(" · "), [locationText(b),b.region].filter(Boolean).join(" · "))}
     ${metric("学校性质",a.schoolType,b.schoolType)}
-    ${metric("学费",a.tuition==null?"":money(a.tuition)+(a.tuitionYear?" · "+a.tuitionYear+" 学年":""),b.tuition==null?"":money(b.tuition)+(b.tuitionYear?" · "+b.tuitionYear+" 学年":""))}
+    ${metric("学费及必缴费用",a.tuition==null?"":money(a.tuition)+(a.tuitionYear?" · "+a.tuitionYear+" 学年":""),b.tuition==null?"":money(b.tuition)+(b.tuitionYear?" · "+b.tuitionYear+" 学年":""))}
     ${costMetric(a,b)}
     ${metric("本科生规模",enrollmentText(a),enrollmentText(b))}
     ${metric("明星专业",a.majors,b.majors)}
