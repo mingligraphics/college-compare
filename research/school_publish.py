@@ -8,16 +8,34 @@ import hashlib
 import json
 
 from sources import keys, require, text
-from staging import SCHOOLS, amount, year
+from staging import SCHOOLS, year
 
-FIELDS = ('tuition', 'tuition_year', 'coa', 'coa_year', 'first_year_enrollment')
-COLUMNS = ('school_id',) + FIELDS
+# Fixed Basic v1 contract; never accept SQL identifiers from a snapshot.
+COLUMNS = ('school_id', 'school_name', 'school_name_cn', 'short_name', 'institution_control', 'school_type', 'city', 'city_cn', 'state', 'state_cn', 'tuition_fees', 'tuition_fees_year', 'coa', 'coa_year', 'undergrad_enrollment', 'undergrad_enrollment_year', 'applicants', 'admitted', 'first_year_enrollment', 'acceptance_rate', 'admissions_year', 'sat_25', 'sat_75', 'act_25', 'act_75', 'test_policy', 'test_policy_cycle', 'international_pct', 'international_pct_year', 'international_pct_scope', 'graduation_rate_4yr', 'graduation_rate_4yr_year', 'international_need_aid', 'international_merit_aid', 'english_proficiency_policy', 'english_tests_accepted', 'english_policy_cycle', 'ranking_usnews', 'ranking_category', 'ranking_year')
+FIELDS = COLUMNS[1:]
 ORDER = ('nyu', 'bu', 'ucb')
-SELECT_SQL = '''SELECT school_id, tuition, tuition_year, coa, coa_year,
-first_year_enrollment FROM private.schools
-WHERE school_id = ANY(%s) ORDER BY school_id'''
-UPDATE_SQL = '''UPDATE private.schools SET tuition = %s, tuition_year = %s,
-coa = %s, coa_year = %s, first_year_enrollment = %s WHERE school_id = %s'''
+SELECT_SQL = 'SELECT ' + ', '.join(COLUMNS) + ' FROM private.schools WHERE school_id = ANY(%s) ORDER BY school_id'
+UPDATE_SQL = 'UPDATE private.schools SET ' + ', '.join(f + ' = %s' for f in FIELDS) + ' WHERE school_id = %s'
+INTEGER_FIELDS = frozenset(('undergrad_enrollment', 'applicants', 'admitted', 'first_year_enrollment', 'sat_25', 'sat_75', 'act_25', 'act_75', 'ranking_usnews', 'ranking_year'))
+PERCENT_FIELDS = frozenset(('acceptance_rate', 'international_pct', 'graduation_rate_4yr'))
+ENUMS = {
+ 'institution_control': {'public','private_nonprofit','private_forprofit'},
+ 'school_type': {'research_university','liberal_arts_college','specialized_institution','other'},
+ 'test_policy': {'required','test_optional','test_free','test_flexible','unclear'},
+ 'international_pct_scope': {'undergraduate','all_students'},
+ 'international_need_aid': {'yes','limited','no','unclear'},
+ 'international_merit_aid': {'yes','limited','no','unclear'},
+ 'english_proficiency_policy': {'required','conditional','not_required','unclear'},
+ 'ranking_category': {'national_university','national_liberal_arts_college','other'},
+}
+
+
+def freeze(value):
+    return tuple(value) if isinstance(value, list) else value
+
+
+def thaw(value):
+    return list(value) if isinstance(value, tuple) else value
 
 
 def validate_rows(rows, *, master):
@@ -28,17 +46,37 @@ def validate_rows(rows, *, master):
         sid = row['school_id']
         require(type(sid) is str and sid in SCHOOLS, 'Unknown pilot school')
         require(sid not in result, 'Duplicate school')
-        for field in ('tuition', 'coa', 'first_year_enrollment'):
+        text(row['school_name'], 'school_name')
+        for field in FIELDS:
             value = row[field]
-            amount(value, field)
-            maximum = 2147483647 if field == 'first_year_enrollment' else Decimal('9999999999.99')
-            require(value is None or Decimal(str(value)) <= maximum, 'Value exceeds database range')
-        for field in ('tuition', 'coa'):
+            if value is None:
+                continue
+            if field in INTEGER_FIELDS:
+                require(type(value) is int and 0 <= value <= 2147483647, 'Invalid integer: ' + field)
+                require(field not in ('ranking_usnews','ranking_year') or value > 0, 'Rank/year must be positive')
+            elif field in PERCENT_FIELDS or field in ('tuition_fees','coa'):
+                require(type(value) in (int,float) and Decimal(str(value)).is_finite(), 'Invalid number: ' + field)
+                number = Decimal(str(value))
+                maximum = 100 if field in PERCENT_FIELDS else Decimal('9999999999.99')
+                require(0 <= number <= maximum and number == number.quantize(Decimal('.01')), 'Invalid range/scale: ' + field)
+            elif field == 'english_tests_accepted':
+                require(isinstance(value, list), 'English tests must be an array or null')
+                for test in value:
+                    text(test, field)
+                require(len(set(value)) == len(value), 'Duplicate English test')
+            else:
+                text(value, field)
+                require(value.lower() not in ('null','undefined'), 'Textual null is forbidden')
+                if field in ENUMS:
+                    require(value in ENUMS[field], 'Invalid classification: ' + field)
+        for field in ('tuition_fees', 'coa'):
             year(row[field + '_year'], nullable=True)
             if master:
                 require((row[field] is None) == (row[field + '_year'] is None),
                         'Master amount and academic year must both be known or both null')
-        result[sid] = tuple(row[column] for column in COLUMNS)
+        for low, high in [('sat_25','sat_75'),('act_25','act_75')]:
+            require(row[low] is None or row[high] is None or row[low] <= row[high], 'Reversed test percentiles')
+        result[sid] = tuple(freeze(row[column]) for column in COLUMNS)
     return tuple(result[sid] for sid in ORDER if sid in result)
 
 
@@ -57,7 +95,7 @@ def database_snapshot(document):
 
 
 def records(rows):
-    return [dict(zip(COLUMNS, row)) for row in rows]
+    return [dict(zip(COLUMNS, (thaw(v) for v in row))) for row in rows]
 
 
 @dataclass(frozen=True)
@@ -71,7 +109,7 @@ class Plan:
         changes = []
         unchanged = []
         for old, new in zip(self.before, self.after):
-            fields = {field: {'before': old[i], 'after': new[i]}
+            fields = {field: {'before': thaw(old[i]), 'after': thaw(new[i])}
                       for i, field in enumerate(COLUMNS) if i and old[i] != new[i]}
             if fields:
                 changes.append({'school_id': new[0], 'changes': fields})
@@ -102,7 +140,7 @@ def read_school(service, spreadsheet_id):
     """
     text(spreadsheet_id, 'spreadsheet_id')
     response = service.spreadsheets().values().get(
-        spreadsheetId=spreadsheet_id, range="'School'",
+        spreadsheetId=spreadsheet_id, range="'School'!A1:BA4",
         valueRenderOption='UNFORMATTED_VALUE').execute()
     grid = response.get('values', [])
     require(isinstance(grid, list) and grid, 'School header missing')
@@ -122,7 +160,13 @@ def read_school(service, spreadsheet_id):
         sid = projected[0]
         require(type(sid) is str and sid.strip() == sid and sid, 'Invalid School ID')
         require(sid in SCHOOLS, 'Unknown pilot school in School master')
-        rows.append(dict(zip(COLUMNS, [None if v == '' else v for v in projected])))
+        record = dict(zip(COLUMNS, [None if v == '' else v for v in projected]))
+        if isinstance(record['english_tests_accepted'], str):
+            try:
+                record['english_tests_accepted'] = json.loads(record['english_tests_accepted'])
+            except ValueError as exc:
+                raise ValueError('Invalid English tests JSON') from exc
+        rows.append(record)
     document = {'source_tab': 'School', 'spreadsheet_id': spreadsheet_id, 'rows': rows}
     master_snapshot(document)
     return document
@@ -135,7 +179,7 @@ def _db_rows(cursor):
         values = list(values)
         # PostgreSQL numeric arrives as Decimal. This schema fits safely within
         # float cent precision; JSON validation below still rejects excess scale.
-        for i in (1, 3):
+        for i in range(len(COLUMNS)):
             if isinstance(values[i], Decimal):
                 values[i] = float(values[i])
         rows.append(dict(zip(COLUMNS, values)))
@@ -192,7 +236,10 @@ class PostgresSchools:
                     count = 0
                     for old, new in zip(plan.before, plan.after):
                         if old != new:
-                            cursor.execute(UPDATE_SQL, (*new[1:], new[0]))
+                            cursor.execute(UPDATE_SQL, (*[thaw(v) for v in new[1:]], new[0]))
                             require(cursor.rowcount == 1, 'Update did not affect exactly one school')
                             count += 1
+                    cursor.execute(SELECT_SQL, ([row[0] for row in plan.after],))
+                    require(validate_rows(_db_rows(cursor), master=False) == plan.after,
+                            'Transactional readback failed')
         return count

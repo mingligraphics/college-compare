@@ -36,7 +36,7 @@ async function readBody(request) {
   return JSON.parse(new TextDecoder('utf-8', { fatal: true }).decode(bytes));
 }
 
-export function createHandler({ getEnv, fetchImpl = fetch }) {
+export function createHandler({ getEnv, fetchImpl = fetch, rpcName = 'get_school_comparison', responseFields = fields }) {
   return async (request) => {
     const headers = {
       'Content-Type': 'application/json; charset=utf-8',
@@ -91,7 +91,7 @@ export function createHandler({ getEnv, fetchImpl = fetch }) {
       if (!url || typeof key !== 'string' || !key.trim()) {
         return error(500, 'Server configuration error');
       }
-      const response = await fetchImpl(`${url.replace(/\/$/, '')}/rest/v1/rpc/get_school_comparison`, {
+      const response = await fetchImpl(`${url.replace(/\/$/, '')}/rest/v1/rpc/${rpcName}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -110,11 +110,11 @@ export function createHandler({ getEnv, fetchImpl = fetch }) {
       }
       if (!Array.isArray(data) || data.length !== 2 ||
           data[0]?.school_id !== schoolA || data[1]?.school_id !== schoolB ||
-          data.some((row) => fields.some((field) => !Object.hasOwn(row, field)))) {
+          data.some((row) => responseFields.some((field) => !Object.hasOwn(row, field)))) {
         return error(500, 'Unexpected comparison response');
       }
       // Explicit response allowlist protects against future RPC additions.
-      return json(200, data.map((row) => Object.fromEntries(fields.map((field) => [field, row[field]]))));
+      return json(200, data.map((row) => Object.fromEntries(responseFields.map((field) => [field, row[field]]))));
     } catch {
       // Never return or log database messages, request headers, or credentials.
       return error(500, 'Comparison unavailable');

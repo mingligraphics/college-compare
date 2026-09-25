@@ -1,158 +1,115 @@
-# School → private.schools publisher
+# Basic v1 School → Supabase publisher
 
-The authoritative source is the human-maintained **School** tab, never Staging,
-research candidates, old SQL seeds, or the public directory CSV. Putting a value
-in School is the human approval boundary; this tool does not infer approval from
-Staging status. The initial scope is `nyu`, `bu`, `ucb`.
+The authoritative source is the master **School** tab, spreadsheet
+`1gMcmRGVxWgw4olbax2Vwxf4ZDJroBaHShH8A1qAjkrw`. No Staging, CSV, seed, or September 23
+snapshot is a publication source. Scope remains `nyu`, `bu`, `ucb`; no inserts.
 
-## Data flow
+`school_publish.COLUMNS` is the exact 40-field Basic v1 contract. The publisher
+updates 39 non-key fields and never writes Deep/GPA fields or derived values.
+`private.schools_basic_v1` computes region, location_cn, and ranking_tier.
 
-1. Read the actual School tab with `school_publish.read_school`, using an injected
-   Sheets v4 client authorized for `spreadsheets.readonly`. The range is fixed to
-   `'School'`; this adapter cannot write any sheet. It projects only `school_id`,
-   `tuition`, `tuition_year`, `coa`, `coa_year`, `first_year_enrollment`.
-2. Read these same six columns through `PostgresSchools.read`, using an injected
-   trusted PostgreSQL connection. This transaction is explicitly READ ONLY.
-3. `plan_publish(master, database)` validates both complete snapshots and creates
-   an immutable, deterministic plan. Its JSON report includes complete before/
-   after snapshots, exact field changes, unchanged IDs, source/target identifiers,
-   and an approval digest. No connection or write occurs in the planner.
-4. Human reviews that exact plan. **No production execution is authorized yet.**
-5. A future operator may call `PostgresSchools.apply` with that exact approved
-   digest and a freshly read School snapshot. It revalidates the plan and source,
-   locks all targeted database rows in one transaction, checks all before values,
-   and performs parameterized updates only when values differ. A conflict or any
-   failed update rolls back the batch. Re-plan and reapprove after a conflict.
+## Read, plan, review, apply, verify
 
-The normal CLI is offline and dry-run-only. The separate production entry point below explicitly loads DATABASE_URL and calls
-the existing transaction adapter. No schema change, RPC, or automatic promotion is included.
+1. `read_school(service, spreadsheet_id)` uses an injected read-only Sheets v4
+   client to read the bounded pilot area `'School'!A1:BA4`. All 40 Basic headers
+   must exist exactly once. Extra Deep/GPA columns are ignored. Pilot rows must
+   remain inside that area; the production command requires all three IDs.
+2. Read the same fields with `PostgresSchools.read` (psycopg) or
+   `SupabaseSchools.read` (the existing authenticated Supabase CLI).
+3. `plan_publish(master, database)` creates an immutable before/after plan and
+   digest. The source and database identities are part of that digest. Arrays
+   are frozen inside the plan. Planning never writes.
+4. Review the exact diff, including NULL clears. Re-read School immediately
+   before applying. Freeze relevant Sheet edits until verification completes;
+   a Sheet read and database commit cannot form one atomic transaction.
+5. Apply with the reviewed digest and fresh source snapshot. Both transports
+   lock selected rows, compare the before-image, update only changed rows,
+   and verify all Basic fields before committing. Re-read after commit. Stale
+   database/source values abort; re-plan instead of automatically retrying.
 
-## Validation and NULL policy
+Snapshots use these existing envelopes:
 
-- Normalized records require exactly the six named columns. Missing/extra keys,
-  duplicate/unknown IDs, blank IDs, and missing database schools fail the batch.
-  Subsets of the three pilot schools are supported explicitly; no insert/upsert.
-- A full School worksheet can contain unrelated columns, but the read adapter
-  projects the six fixed columns. Unknown school IDs fail rather than disappear.
-- Explicit JSON `null` means **clear the database value**. Missing columns do not
-  mean null. In Sheets, genuinely empty cells in present columns map to null.
-  Whitespace, textual `NULL`, numeric strings, booleans, and malformed values fail.
-  Zero remains zero. Verify blanks are intentional before approving a plan.
-- Money is USD, finite, nonnegative, at most two decimal places, and within
-  PostgreSQL numeric(12,2). Enrollment is an integer between 0 and 2147483647.
-- Years must be consecutive `YYYY-YY`. In the master, a tuition/COA amount and
-  its year must either both be known or both be null. Database snapshots may
-  contain incomplete pairs so they can be corrected from a valid master.
-- Enrollment has **no year column in the existing schema**. None is invented;
-  keep that provenance/year in the master/source records. Never substitute
-  total undergraduate enrollment.
-- No source, editorial, names, location, percentage, arrays, or other database
-  fields can be changed. SQL table/column names are fixed, not generated from
-  input. Re-running against already published values produces zero UPDATEs.
+- Master: `{"source_tab":"School","spreadsheet_id":"...","rows":[...]}`
+- Database: `{"target":"private.schools","database_id":"...","rows":[...]}`
 
-## Local input contract and dry-run
+Every row must have exactly the 40 Basic keys. A snapshot envelope is operator
+attestation, not cryptographic evidence of provenance. Use the live read adapter
+or connected Sheets read; never relabel research data as School.
 
-Store private exports in ignored `research/inputs/`, not tracked source files.
-The JSON master envelope is:
+## NULL and type rules
 
-```json
-{
-  "source_tab": "School",
-  "spreadsheet_id": "ACTUAL_SHEET_ID",
-  "rows": []
-}
-```
+Empty Sheet cells map to null; missing columns fail. Null means clear the
+corresponding database field. Zero stays zero. Empty test arrays mean a confirmed
+empty list, distinct from unknown/null. The Sheet's JSON test list is parsed to a
+native array without sorting or filling values. JSON snapshot lists must already
+be arrays. Unknown policy cycles stay null.
 
-The target envelope is:
+Money is USD with <=2 decimals, percentages are 0–100 percentage points with
+<=2 decimals, counts are nonnegative PostgreSQL integers, and numerical ranks and
+ranking years are positive integers. Booleans, numeric strings, nonfinite numbers,
+textual nulls, invalid enums, duplicate tests, and reversed test percentiles fail.
+Cost years retain the consecutive `YYYY-YY` check. Other periods/cycles are text;
+they are not forced into cost-year syntax. Official reported acceptance rates
+are preserved rather than recomputed from counts. No missing value is inferred.
 
-```json
-{
-  "target": "private.schools",
-  "database_id": "ACTUAL_SUPABASE_PROJECT_REF",
-  "rows": []
-}
-```
+## Commands
 
-Each rows array must contain nonempty, exact six-column records. Use actual
-exports; the empty arrays above are documentation placeholders and will fail
-validation. An envelope alone is an operator attestation, not cryptographic proof
-of provenance. Do not relabel a Staging export as School. Prefer the read adapter
-for the master and the read-only database adapter for the target.
+Offline diff:
 
 ```sh
-python3 -B research/publish_school.py \
-  --master research/inputs/approved-school.json \
-  --database research/inputs/current-private-schools.json \
-  --dry-run > research/output/school-publish-dry-run.json
+python3 -B research/publish_school.py --master PATH/approved-school.json \
+  --database PATH/current-private-schools.json --dry-run
 ```
 
-A rejected input exits nonzero and produces no publication report. Keep a report
-only after successful exit. The command cannot write to Supabase or Google Sheets.
-The actual NYU/BU/UCB diff requires both real snapshots; earlier pilot research
-and seeds cannot establish either current approved values or current DB state.
-
-## Manual setup before eventual execution
-
-- Provide the correct Sheet URL/ID and verify its School headers. Supply a fresh
-  approved master export or configure a read-only Sheets client outside the repo.
-- Use a trusted server/operator PostgreSQL connection whose permissions include
-  schema USAGE and SELECT/UPDATE on the five publishable columns (plus school_id
-  SELECT), and that can satisfy the existing RLS policy. The current schema has
-  no RLS policies: an ordinary new grant alone is insufficient. No role, grant,
-  or policy is created here. The existing owner connection can operate, but has
-  broad privileges and must remain operator-only.
-- The existing service-role secret cannot directly read/write this table; the
-  comparison RPC is read-only. This publisher does not change that security
-  design or expose a new browser endpoint.
-- Install/configure `psycopg` 3 outside application/frontend code if using the
-  PostgreSQL adapter. Supply a factory returning a **fresh** connection with
-  `autocommit=True`, default tuple rows, a bounded connect timeout, and TLS.
-  Verify the connection host/project matches the configured `database_id`;
-  this label is operator-provided, not server-attested. Never store/log the DSN,
-  password, service-account JSON, tokens, or keys in the repo or plan.
-- The dry-run digest binds the selected rows and configured identities; it is
-  an operator confirmation mechanism, not user authentication.
-- Freeze edits to the relevant School rows during final re-read and publication.
-  Pass that fresh snapshot to `apply`. A Google Sheet read and PostgreSQL commit
-  cannot be made one atomic transaction: this tool does not lock the Sheet.
-  Database concurrency is protected by row locks and before-image comparison;
-  a Sheet edit after the final read remains a race without an edit freeze.
-- Review NULL clears, source identity, target identity, and the exact plan before
-  approval. No database writes, real credentials, or connections were configured
-  while implementing this tool. Unit tests use synthetic values and fake clients.
-
-Tests: `python3 -B -m unittest discover -s research -p 'test_*.py'`.
-
-
-## Approved production entry point
-
-`publish_approved.py --execute` executes only the saved September 23, 2026
-approval. Its pinned digest, project reference, and three-school scope must all
-match. Default snapshots are in the original Codex task's
-`outputs/school-publish-20260923` directory under the operator's home directory;
-`--snapshots PATH` can relocate those files but cannot change the approved digest.
-It uses the reviewed snapshot, not a fresh Google Sheet read, as explicitly approved.
-
-Run from the repository, using a stable environment outside the repository:
+After review, place a **newly read** School snapshot at `PATH/current-school.json`.
+The execution command requires an explicit folder and the reviewed plan digest:
 
 ```sh
-python3 -m venv "$HOME/.venvs/college-publish"
-"$HOME/.venvs/college-publish/bin/python" -m pip install -r research/requirements-publish.txt
-export DATABASE_URL
-"$HOME/.venvs/college-publish/bin/python" -B research/publish_approved.py --execute
+python3 -B research/publish_approved.py --execute --snapshots PATH \
+  --approved-digest REVIEWED_SHA256 --transport supabase-cli
 ```
 
-DATABASE_URL must already be set locally; never put its value on the command
-line or in source. The CLI suppresses connection/exception details. It validates
-the direct Supabase hostname or pooler hostname/project username and database
-`postgres`, rejects routing overrides, and requires TLS. Custom hosts/proxies
-are intentionally unsupported. No database credential is sent to the API.
+The Supabase CLI transport is pinned to project `hmnoqybdcfwqbjhorwzd` and uses its
+existing operator login. It runs bounded SQL through the Management API, with
+no secrets in command arguments. SQL identifiers are fixed, payloads are safely
+quoted JSON outside PL/pgSQL bodies, and temporary query files are private and
+removed. It does not expose an RPC or grant permissions to publish.
 
-Exit codes: 0 = committed and verified; 1 = before-commit abort; 2 = transaction
-error with uncertain commit outcome; 3 = confirmed commit but verification failed.
-Do not automatically retry codes 2 or 3. A baseline mismatch under locks aborts
-the entire transaction. All three API pairs are checked even when database
-readback or another API verification fails. No automatic repair is implemented.
-The full research suite requires Python 3.10+ because the existing Staging module
-uses union annotations; the production entry point and publisher tests support
-Python 3.9.6. Tests use fake clients; no production execution occurred in development.
+Alternatively use `--transport postgres` (default), a preconfigured local
+`DATABASE_URL`, and the existing `requirements-publish.txt`. The connection must
+match the pinned Supabase project, use TLS, and possess owner/operator access.
+Neither browser keys nor comparison RPCs can publish.
+
+The old hard-coded approval/directory defaults were removed. Running the former
+`--execute` command alone now fails argument validation, rather than replaying
+obsolete costs. The command verifies the pinned master/project, all three IDs,
+the fresh School snapshot, database readback, and all Basic fields on all three
+pairs through `compare-schools-basic-v1`.
+
+Exit codes: 0 verified; 1 pre-commit validation failure; 2 transaction/commit
+outcome uncertain; 3 committed but post-commit verification failed. A CLI query
+error is treated conservatively as uncertain once apply begins. Do not retry
+codes 2/3 blindly. No automatic repairs or migrations are performed.
+
+## API and frontend compatibility
+
+`get_school_comparison_basic_v1` returns 40 Basic + 3 calculated + 8 existing Deep
+fields, exactly two schools in request order. It is service-role-only, has an
+empty search_path, and never includes GPA/editorial/provenance fields. The new
+`compare-schools-basic-v1` Edge Function exposes the same request shape as the old
+endpoint and enforces the 51-field response allowlist. Existing request limits,
+CORS, timeouts, secret handling, and sanitized errors are reused.
+
+The legacy RPC/endpoint remain available during frontend rollout. The local
+page uses the new endpoint, canonical tuition names, and Chinese display labels
+for institution_control/region. Its layout is unchanged. It displays the same
+set of comparison sections, not every newly exposed Basic field. Publishing the
+local frontend to GitHub Pages is a separate release action.
+
+Tests:
+
+```sh
+python3 -B -m unittest discover -s research -p 'test_*.py'
+node --test supabase/functions/compare-schools/handler.test.mjs \
+  supabase/functions/compare-schools-basic-v1/handler.test.mjs tests/frontend.test.mjs
+```

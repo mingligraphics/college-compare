@@ -16,8 +16,12 @@ from school_publish import (COLUMNS, FIELDS, SELECT_SQL, UPDATE_SQL, PostgresSch
 
 
 def row(sid, value=10):
-    return dict(zip(COLUMNS, (sid, value, '2026-27' if value is not None else None,
-                             value, '2026-27' if value is not None else None, value)))
+    result = dict.fromkeys(COLUMNS)
+    result.update(school_id=sid, school_name='Synthetic '+sid,
+                  tuition_fees=value,tuition_fees_year='2026-27' if value is not None else None,
+                  coa=value,coa_year='2026-27' if value is not None else None,
+                  first_year_enrollment=value)
+    return result
 
 
 def fixtures():
@@ -36,7 +40,7 @@ class Database:
         self.calls = []
         self.fail_update = False
         self.rowcount = 0
-        self.unrelated = {'school_name': 'preserved', 'city': 'preserved'}
+        self.unrelated = {'gpa_year': 'preserved', 'campus_description': 'preserved'}
 
     def __enter__(self):
         return self
@@ -91,8 +95,8 @@ class PublisherTests(unittest.TestCase):
     def test_exact_diff(self):
         report = self.plan().report()
         self.assertEqual([r['school_id'] for r in report['changes']], ['nyu', 'bu', 'ucb'])
-        self.assertEqual(report['changes'][0]['changes']['tuition'], {'before': None, 'after': 10})
-        self.assertEqual(set(report['changes'][0]['changes']), set(FIELDS))
+        self.assertEqual(report['changes'][0]['changes']['tuition_fees'], {'before': None, 'after': 10})
+        self.assertEqual(set(report['changes'][0]['changes']), {'tuition_fees','tuition_fees_year','coa','coa_year','first_year_enrollment'})
         self.connect.assert_not_called()
 
     def test_unchanged(self):
@@ -104,17 +108,17 @@ class PublisherTests(unittest.TestCase):
     def test_null_clears_and_zero_survives(self):
         self.master['rows'][0] = row('nyu', None)
         self.database['rows'][0] = row('nyu', 0)
-        self.assertEqual(self.plan().report()['changes'][0]['changes']['tuition'],
+        self.assertEqual(self.plan().report()['changes'][0]['changes']['tuition_fees'],
                          {'before': 0, 'after': None})
         self.master['rows'][0] = row('nyu', 0)
         self.database['rows'][0] = row('nyu', None)
-        self.assertEqual(self.plan().report()['changes'][0]['changes']['tuition']['after'], 0)
+        self.assertEqual(self.plan().report()['changes'][0]['changes']['tuition_fees']['after'], 0)
 
     def test_invalid_values(self):
         for value in (True, '10', '', -1, float('nan'), float('inf'), 1.001, 10000000000):
             with self.subTest(value=value):
                 self.master, self.database = fixtures()
-                self.master['rows'][0]['tuition'] = value
+                self.master['rows'][0]['tuition_fees'] = value
                 with self.assertRaises(ValidationError):
                     self.plan()
 
@@ -125,7 +129,7 @@ class PublisherTests(unittest.TestCase):
                 self.plan()
 
     def test_missing_and_unknown_fields(self):
-        for field in ('school_name', 'undergrad_enrollment', 'status', 'tuition;DROP TABLE schools'):
+        for field in ('gpa_year', 'undergrad_enrollment', 'status', 'tuition;DROP TABLE schools'):
             self.master, self.database = fixtures()
             self.master['rows'][0][field] = 'forbidden'
             with self.assertRaises(ValidationError):
@@ -149,12 +153,12 @@ class PublisherTests(unittest.TestCase):
 
     def test_year_validation(self):
         for value in ('2026', '2026-28', '', None):
-            self.master['rows'][0]['tuition_year'] = value
+            self.master['rows'][0]['tuition_fees_year'] = value
             with self.assertRaises(ValidationError):
                 self.plan()
 
     def test_null_amount_with_year_rejected(self):
-        self.master['rows'][0]['tuition'] = None
+        self.master['rows'][0]['tuition_fees'] = None
         with self.assertRaises(ValidationError):
             self.plan()
 
@@ -172,10 +176,10 @@ class PublisherTests(unittest.TestCase):
     def test_fixed_parameterized_updates_preserve_unrelated(self):
         self.assertEqual(self.apply(), 3)
         self.assertEqual(self.db.rows, self.master['rows'])
-        self.assertEqual(self.db.unrelated, {'school_name': 'preserved', 'city': 'preserved'})
+        self.assertEqual(self.db.unrelated, {'gpa_year': 'preserved', 'campus_description': 'preserved'})
         updates = [call for call in self.db.calls if call[0].startswith('UPDATE')]
         self.assertEqual(len(updates), 3)
-        self.assertTrue(all(sql == UPDATE_SQL and len(params) == 6 for sql, params in updates))
+        self.assertTrue(all(sql == UPDATE_SQL and len(params) == len(COLUMNS) for sql, params in updates))
         self.assertTrue(any(sql.endswith('FOR UPDATE') for sql, _ in self.db.calls))
 
     def test_idempotent_noop_has_no_updates(self):
@@ -217,9 +221,9 @@ class PublisherTests(unittest.TestCase):
         self.assertEqual(self.db.rows, before)
 
     def test_read_is_read_only_and_decimal_supported(self):
-        self.db.rows[0]['tuition'] = Decimal('10.25')
+        self.db.rows[0]['tuition_fees'] = Decimal('10.25')
         snapshot = self.transport.read(['nyu', 'bu', 'ucb'])
-        self.assertEqual(snapshot['rows'][0]['tuition'], 10.25)
+        self.assertEqual(snapshot['rows'][0]['tuition_fees'], 10.25)
         self.assertEqual(self.db.calls[0][0], 'SET TRANSACTION READ ONLY')
         self.assertFalse(any(sql.startswith('UPDATE') for sql, _ in self.db.calls))
 
@@ -231,13 +235,13 @@ class PublisherTests(unittest.TestCase):
     def test_sheet_reader_projects_only_school(self):
         service = Mock()
         grid = [list(COLUMNS) + ['unrelated'],
-                ['nyu', 0, '2026-27', '', '', '', 'preserved']]
+                [row('nyu',0)[f] if row('nyu',0)[f] is not None else '' for f in COLUMNS] + ['preserved']]
         service.spreadsheets().values().get().execute.return_value = {'values': grid}
         result = read_school(service, 'synthetic-sheet')
-        self.assertEqual(result['rows'][0]['tuition'], 0)
-        self.assertIsNone(result['rows'][0]['coa'])
+        self.assertEqual(result['rows'][0]['tuition_fees'], 0)
+        self.assertEqual(result['rows'][0]['coa'], 0)
         self.assertEqual(set(result['rows'][0]), set(COLUMNS))
-        self.assertEqual(service.spreadsheets().values().get.call_args.kwargs['range'], "'School'")
+        self.assertEqual(service.spreadsheets().values().get.call_args.kwargs['range'], "'School'!A1:BA4")
         service.spreadsheets().values().batchUpdate.assert_not_called()
 
     def test_sheet_reader_rejects_missing_header(self):

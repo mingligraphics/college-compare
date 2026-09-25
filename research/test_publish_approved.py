@@ -18,6 +18,7 @@ class ProductionCLITests(unittest.TestCase):
         self.folder = Path(self.temp.name)
         self.master, self.baseline = fixtures.fixtures()
         self.baseline['database_id'] = cli.PROJECT
+        self.master['spreadsheet_id'] = cli.SPREADSHEET
         self.db = fixtures.Database(self.baseline['rows'])
         self.transport = PostgresSchools(lambda: self.db, cli.PROJECT)
         self.factory = Mock(return_value=self.transport)
@@ -29,7 +30,7 @@ class ProductionCLITests(unittest.TestCase):
 
     def save(self):
         for name, value in [('approved-school.json', self.master),
-                            ('current-private-schools.json', self.baseline)]:
+                            ('current-private-schools.json', self.baseline), ('current-school.json',self.master)]:
             (self.folder / name).write_text(json.dumps(value))
 
     def run_cli(self):
@@ -40,7 +41,7 @@ class ProductionCLITests(unittest.TestCase):
         self.assertEqual(self.db.rows, self.master['rows'])
         self.assertEqual(self.api.call_args_list, [unittest.mock.call(*p) for p in cli.PAIRS])
         self.assertTrue(any(sql.endswith('FOR UPDATE') for sql, _ in self.db.calls))
-        self.assertIn('Database readback: PASS (15/15 fields)', self.output)
+        self.assertIn('Database readback: PASS (120/120 fields)', self.output)
 
     def test_digest_mismatch_never_connects(self):
         self.master['rows'][0]['first_year_enrollment'] = 20
@@ -95,10 +96,10 @@ class ProductionCLITests(unittest.TestCase):
 
     def test_api_mismatch_reports_field_without_repair(self):
         bad = copy.deepcopy(self.expected['nyu'])
-        bad['tuition'] = 'secret-response-content'
+        bad['tuition_fees'] = 'secret-response-content'
         self.api.side_effect = lambda a, b: [bad if a == 'nyu' else self.expected[a], self.expected[b]]
         self.assertEqual(self.run_cli(), 3)
-        self.assertIn('nyu.tuition', str(self.output))
+        self.assertIn('nyu.tuition_fees', str(self.output))
         self.assertNotIn('secret-response-content', str(self.output))
         self.assertEqual(self.db.rows, self.master['rows'])
         self.assertEqual(self.api.call_count, 3)

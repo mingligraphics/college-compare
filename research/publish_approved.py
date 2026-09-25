@@ -10,11 +10,9 @@ from sources import load_json, require, ValidationError
 from school_publish import PostgresSchools, plan_publish, database_snapshot, FIELDS
 
 PROJECT = 'hmnoqybdcfwqbjhorwzd'
-DIGEST = 'ede7d72f0158b2a0d894cc39bfb025a7b6e06f2dd803488c4e212b15943464a0'
 IDS = ('nyu', 'bu', 'ucb')
 PAIRS = (('nyu', 'bu'), ('nyu', 'ucb'), ('bu', 'ucb'))
-SNAPSHOTS = Path.home() / ('Documents/Codex/2026-09-08/'
-    'open-my-local-college-compare-repository/outputs/school-publish-20260923')
+SPREADSHEET = '1gMcmRGVxWgw4olbax2Vwxf4ZDJroBaHShH8A1qAjkrw'
 
 
 def validate_connection(params):
@@ -45,7 +43,7 @@ def production_transport():
 
 def compare_api(a, b):
     request = urllib.request.Request(
-        'https://' + PROJECT + '.supabase.co/functions/v1/compare-schools',
+        'https://' + PROJECT + '.supabase.co/functions/v1/compare-schools-basic-v1',
         data=json.dumps({'schoolA': a, 'schoolB': b}).encode(),
         headers={'Content-Type': 'application/json'}, method='POST')
     with urllib.request.urlopen(request, timeout=30) as response:
@@ -57,7 +55,7 @@ def verify_rows(rows, expected, ids):
     require([r['school_id'] for r in rows] == list(ids), 'Wrong row identities/order')
     differences = []
     for row in rows:
-        for field in FIELDS:
+        for field in ('school_id',) + FIELDS:
             # Report identities only: never echo unexpected server content.
             if field not in row or type(row[field]) is bool or row[field] != expected[row['school_id']][field]:
                 differences.append(row['school_id'] + '.' + field)
@@ -65,10 +63,13 @@ def verify_rows(rows, expected, ids):
 
 
 def run(folder, transport_factory=production_transport, api=compare_api, emit=print,
-        approved_digest=DIGEST):
+        approved_digest=None):
     stage = 'approved snapshots'
     try:
+        require(isinstance(approved_digest,str) and len(approved_digest)==64, 'Explicit reviewed digest required')
         master = load_json(folder / 'approved-school.json')
+        current_master = load_json(folder / 'current-school.json')
+        require(master['spreadsheet_id'] == SPREADSHEET, 'Wrong master spreadsheet')
         baseline = load_json(folder / 'current-private-schools.json')
         plan = plan_publish(master, baseline)
         require(plan.report()['approval_digest'] == approved_digest, 'Approval mismatch')
@@ -85,9 +86,9 @@ def run(folder, transport_factory=production_transport, api=compare_api, emit=pr
         return 1
 
     try:
-        # Existing implementation does the second read/check under row locks
-        # and all five-column updates in one transaction. No SQL duplicated here.
-        updated = db.apply(plan, approved_digest=approved_digest, current_master=master)
+        # The transport rechecks the baseline under row locks, updates only Basic
+        # fields, and verifies them in the same transaction.
+        updated = db.apply(plan, approved_digest=approved_digest, current_master=current_master)
     except ValidationError:
         emit('STOP BEFORE COMMIT: locked baseline/validation failed; batch aborted.')
         return 1
@@ -106,7 +107,7 @@ def run(folder, transport_factory=production_transport, api=compare_api, emit=pr
         rows = sorted(actual['rows'], key=lambda r: IDS.index(r['school_id']))
         differences = verify_rows(rows, expected, IDS)
         require(not differences, 'Readback mismatch')
-        emit('Database readback: PASS (15/15 fields)')
+        emit('Database readback: PASS (120/120 fields)')
     except (Exception, KeyboardInterrupt):
         failed = True
         emit('Database readback: FAILED (read, structure, or value mismatch)')
@@ -131,10 +132,16 @@ def run(folder, transport_factory=production_transport, api=compare_api, emit=pr
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--execute', action='store_true', required=True,
-                        help='Execute the previously approved transaction')
-    parser.add_argument('--snapshots', type=Path, default=SNAPSHOTS)
+                        help='Execute an explicitly reviewed Basic v1 plan')
+    parser.add_argument('--snapshots', type=Path, required=True)
+    parser.add_argument('--approved-digest', required=True)
+    parser.add_argument('--transport', choices=('postgres','supabase-cli'), default='postgres')
     args = parser.parse_args()
-    return run(args.snapshots)
+    factory = production_transport
+    if args.transport == 'supabase-cli':
+        from school_cli_transport import SupabaseSchools
+        factory = SupabaseSchools
+    return run(args.snapshots, transport_factory=factory, approved_digest=args.approved_digest)
 
 
 if __name__ == '__main__':
