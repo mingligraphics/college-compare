@@ -472,7 +472,7 @@ function moneyRmbWan(n){
 }
 function locationText(s){ return [s.stateCN||s.state,s.cityCN||s.city].filter(Boolean).join(" · ") || s.locationCN; }
 function summary(a,b){
-  const profile=s=>`<article><h3 class="profile-name">${esc(s.name)}</h3><div class="profile-meta">${esc([s.schoolType,s.region].filter(Boolean).join(" · ") || "暂无数据")}</div><div class="profile-stats">${[[s.acceptance,"录取率"],[moneyRmbWan(s.tuition),"学费"]].map(([value,label])=>`<div class="profile-stat"><strong>${esc(value||"暂无数据")}</strong><span>${label}</span></div>`).join("")}</div></article>`;
+  const profile=s=>`<article><h3 class="profile-name">${esc(s.name)}</h3><div class="profile-meta">${esc([s.region,s.schoolType].filter(Boolean).join(" · ") || "暂无数据")}</div><div class="profile-stats">${[[s.acceptance,"录取率"],[moneyRmbWan(s.tuition),"学费"]].map(([value,label])=>`<div class="profile-stat"><strong>${esc(value||"暂无数据")}</strong><span>${label}</span></div>`).join("")}</div></article>`;
   return profile(a)+profile(b);
 }
 
@@ -501,7 +501,7 @@ function secondaryMetric(title,a,b,aSub="",bSub=""){
   return `<section class="metric"><h3 class="metric-title">${esc(title)}</h3><div class="metric-cols">${render(a,aSub)}${render(b,bSub)}</div></section>`;
 }
 function rankingText(s){ return s.rank!=null ? `${s.rankCategory || "U.S. News"} #${s.rank}` : ""; }
-function englishText(s){ return [s.englishPolicy,s.englishTests.length?`接受考试：${s.englishTests.join(" / ")}`:""].filter(Boolean).join("；"); }
+function englishText(s){ return [s.englishPolicy,s.englishTests.length?`接受：${s.englishTests.join(" / ")}`:""].filter(Boolean).join("；"); }
 function comparisonDetail(a,b){
   const aHead=a.shortName||a.nameEn||a.name, bHead=b.shortName||b.nameEn||b.name;
   return `<div class="compare-detail">
@@ -509,17 +509,17 @@ function comparisonDetail(a,b){
       <div class="compare-school-head"><span class="compare-school-short">${esc(aHead)}</span><span class="compare-school-cn">${esc(a.name)}</span></div>
       <div class="compare-school-head"><span class="compare-school-short">${esc(bHead)}</span><span class="compare-school-cn">${esc(b.name)}</span></div>
     </div>
-    ${metric("地理位置",[locationText(a),a.region].filter(Boolean).join(" · "),[locationText(b),b.region].filter(Boolean).join(" · "))}
-    ${secondaryMetric("排名",rankingText(a),rankingText(b),a.rankYear?`${a.rankYear} 版`:"",b.rankYear?`${b.rankYear} 版`:"")}
+    ${metric("地理位置",locationText(a),locationText(b))}
+    ${metric("排名",rankingText(a),rankingText(b))}
     ${metric("本科生规模",enrollmentText(a),enrollmentText(b))}
     ${metric("国际生比例",a.internationalPct,b.internationalPct)}
     ${metric("录取率",a.acceptance,b.acceptance)}
+    ${metric("标化政策",a.testPolicy,b.testPolicy)}
     ${metric("SAT（25–75百分位）",a.sat,b.sat)}
     ${metric("ACT（25–75百分位）",a.act,b.act)}
-    ${secondaryMetric("标化政策",a.testPolicy,b.testPolicy,a.testCycle,b.testCycle)}
     ${metric("英语要求",englishText(a),englishText(b))}
-    ${secondaryMetric("学费及必缴费用",moneyRmbWan(a.tuition),moneyRmbWan(b.tuition),a.tuitionYear?`${a.tuitionYear} 学年`:"",b.tuitionYear?`${b.tuitionYear} 学年`:"")}
-    ${metric("总就读成本",moneyRmbWan(a.coa),moneyRmbWan(b.coa))}
+    ${secondaryMetric("学杂费",moneyRmbWan(a.tuition),moneyRmbWan(b.tuition),a.tuitionYear?`${a.tuitionYear} 学年`:"",b.tuitionYear?`${b.tuitionYear} 学年`:"")}
+    ${metric("总费用",moneyRmbWan(a.coa),moneyRmbWan(b.coa))}
     <p class="currency-note">人民币金额为估算，按固定参考汇率 7 换算。</p>
     ${metric("国际生助学金",a.needAid,b.needAid)}
     ${metric("国际生奖学金",a.meritAid,b.meritAid)}

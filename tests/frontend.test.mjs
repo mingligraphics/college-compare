@@ -24,7 +24,7 @@ const rows=[{school_id:'nyu',school_name_cn:'纽约大学',institution_control:'
  {school_id:'ucb',school_name_cn:'加州大学伯克利分校',institution_control:'public',school_type:'research_university',region:'west_coast',city_cn:'伯克利',tuition_fees:58484,tuition_fees_year:'2026-27',coa:93944,coa_year:'2026-27',undergrad_enrollment:33122,first_year_enrollment:6687,international_pct:9.82}];
 test('Basic v1 uses fees, correct control labels, derived regions, undergraduate counts and NULLs',async()=>{
  const t=await setup();t.choose('nyu','ucb');t.setReply(async()=>({ok:true,json:async()=>rows}));await t.els.go.handlers.click();
- for(const value of ['40.9万元','29471','33122','25.6%','美国西海岸','学费及必缴费用','暂无数据'])assert(t.els.cards.innerHTML.includes(value),value);
+ for(const value of ['40.9万元','29471','33122','25.6%','学杂费','暂无数据'])assert(t.els.cards.innerHTML.includes(value),value);
  assert(!t.els.cards.innerHTML.includes('research_university'));
  assert(!t.els.cards.innerHTML.includes('east_coast'));
  assert.equal(t.els.result.style.display,'block');
@@ -57,6 +57,9 @@ for(const [a,b] of [['mit','stanford'],['usc','ucla'],['harvard','princeton']]){
   assert.equal(t.els.schoolCount.textContent,'13所美国高校官方数据');
   assert(!detail.includes('detail-section-title'));
   assert(!detail.includes('学校性质'));
+  assert(detail.indexOf('metric-title">标化政策') < detail.indexOf('metric-title">SAT'));
+  assert(!detail.includes('接受考试'));
+  assert(!/美国东海岸|美国西海岸/.test(detail));
   assert(!/COA|Need-based|Merit Aid|择优|按需|万元人民币|有限提供/.test(detail));
   assert(detail.includes('metric-title">排名</h3>'));
   assert(!summary.includes('本科生'));
@@ -71,11 +74,12 @@ for(const [a,b] of [['mit','stanford'],['usc','ucla'],['harvard','princeton']]){
    assert(![...summary.matchAll(/class="profile-meta">([^<]+)/g)].some(m=>m[1].includes(r.city_cn)));
    assert(summary.includes(t.run(`normalize(${JSON.stringify(r)}).region`)));
    assert(detail.includes(`全美综合大学 #${r.ranking_usnews}`));
-   assert(detail.includes(`${r.ranking_year} 版`));
+   assert(!detail.includes(`${r.ranking_year} 版`));
+   if(r.test_policy_cycle) assert(!detail.includes(r.test_policy_cycle));
    assert(detail.includes(`${r.graduation_rate_4yr}%`));
    assert(detail.includes((r.tuition_fees*7/10000).toFixed(1)+'万元'));
   }
-  const coa=detail.match(/<section class="metric"><h3 class="metric-title">总就读成本[\s\S]*?<\/section>/)[0];
+  const coa=detail.match(/<section class="metric"><h3 class="metric-title">总费用[\s\S]*?<\/section>/)[0];
   assert(!/metric-sub|学年|高约|美元|\$|20\d\d/.test(coa));
  });
 }
