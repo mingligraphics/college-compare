@@ -445,6 +445,7 @@ function normalize(r){
     city:r.city || "",
     cityCN:r.city_cn || "",
     state:r.state || "",
+    stateCN:r.state_cn || "",
     region:({east_coast:"美国东海岸",south:"美国南部",midwest:"美国中西部",west_coast:"美国西海岸",mountain_west:"美国西部山区",other:"美国其他地区"})[r.region] || "",
     locationCN:r.location_cn || "",
     schoolType:({public:"公立大学",private_nonprofit:"私立非营利大学",private_forprofit:"私立营利大学"})[r.institution_control] || "",
@@ -471,7 +472,7 @@ function moneyRmbWan(n){
   const yuan=Math.round(n*USD_CNY_RATE);
   return Math.abs(yuan)<10000 ? `${yuan.toLocaleString("zh-CN")}元人民币` : `${(yuan/10000).toFixed(1)}万元人民币`;
 }
-function locationText(s){ return s.locationCN || [s.cityCN||s.city,s.state].filter(Boolean).join("，"); }
+function locationText(s){ return s.cityCN && s.stateCN ? `${s.cityCN}，${s.stateCN}` : s.locationCN || [s.cityCN||s.city,s.stateCN||s.state].filter(Boolean).join("，"); }
 function summary(a,b){
   const profile=s=>`<article><h3 class="profile-name">${esc(s.name)}</h3><div class="profile-meta">${esc([s.schoolType,locationText(s)].filter(Boolean).join(" · ") || "暂无数据")}</div><div class="profile-stats">${[[enrollmentText(s),"本科生"],[s.internationalPct,"国际生比例"],[s.acceptance,"录取率"]].map(([value,label])=>`<div class="profile-stat"><strong>${esc(value||"暂无数据")}</strong><span>${label}</span></div>`).join("")}</div></article>`;
   return profile(a)+profile(b);
