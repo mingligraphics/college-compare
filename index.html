@@ -318,7 +318,6 @@ h1{
 .profile-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:20px}
 .profile-name{font-size:17px;margin:0 0 6px}.profile-meta{color:#666;font-size:13px;line-height:1.7}
 .profile-stats{display:flex;flex-wrap:wrap;gap:8px 16px;margin-top:12px}.profile-stat strong{display:block;font-size:17px;color:#222}.profile-stat span{font-size:12px;color:#777}
-.detail-section-title{font-size:19px;margin:26px 0 0;padding:12px 16px;background:#f3f6f4;border-radius:10px}
 .metric-sub{display:block;font-size:12px;font-weight:400;color:#777;margin-top:5px}.currency-note{font-size:12px;color:#777;padding:0 16px}
 @media(max-width:480px){.profile-grid{gap:14px}.profile-name{font-size:15px}.profile-stats{display:grid;gap:8px}.profile-stat strong{font-size:16px}}
 </style>
@@ -344,7 +343,6 @@ h1{
 <section class="result" id="result">
   <div class="section-label">选校指南</div>
   <section class="summary">
-    <h2 id="summaryTitle"></h2>
     <div id="summaryText" class="profile-grid"></div>
   </section>
 
@@ -425,7 +423,7 @@ function normalize(r){
   const majorsCN=list(r.famous_majors_cn);
   const internationalPct=r.international_pct;
   return {
-    acceptance:percent(r.acceptance_rate),
+    acceptance:percent(r.acceptance_rate,1),
     graduation:percent(r.graduation_rate_4yr),
     sat:scoreRange(r.sat_25,r.sat_75),
     act:scoreRange(r.act_25,r.act_75),
@@ -455,7 +453,7 @@ function normalize(r){
     coaYear:r.coa_year || "",
     undergrad:num(r.undergrad_enrollment),
     firstYear:num(r.first_year_enrollment),
-    internationalPct:typeof internationalPct==="number" && Number.isFinite(internationalPct) && internationalPct>=0 && internationalPct<=100 ? `${internationalPct}%` : "",
+    internationalPct:typeof internationalPct==="number" && Number.isFinite(internationalPct) && internationalPct>=0 && internationalPct<=100 ? `${(Math.round(internationalPct*10)/10).toFixed(1)}%` : "",
     campusType:r.campus_type || "",
     campusCN:r.campus_description_cn || r.campus_description || "",
     majors:majorsCN.length ? majorsCN : list(r.famous_majors),
@@ -464,7 +462,7 @@ function normalize(r){
   };
 }
 
-function percent(v){ const n=num(v); return n!=null && n>=0 && n<=100 ? `${n}%` : ""; }
+function percent(v,digits){ const n=num(v); return n!=null && n>=0 && n<=100 ? `${digits==null?n:(Math.round(n*10**digits)/10**digits).toFixed(digits)}%` : ""; }
 function scoreRange(low,high){ return low!=null && high!=null ? `${low}–${high}` : ""; }
 function aidText(v){ return ({yes:"提供",no:"不提供",limited:"有限提供"})[v] || ""; }
 function moneyRmbWan(n){
@@ -474,7 +472,7 @@ function moneyRmbWan(n){
 }
 function locationText(s){ return s.cityCN && s.stateCN ? `${s.cityCN}，${s.stateCN}` : s.locationCN || [s.cityCN||s.city,s.stateCN||s.state].filter(Boolean).join("，"); }
 function summary(a,b){
-  const profile=s=>`<article><h3 class="profile-name">${esc(s.name)}</h3><div class="profile-meta">${esc([s.schoolType,locationText(s)].filter(Boolean).join(" · ") || "暂无数据")}</div><div class="profile-stats">${[[enrollmentText(s),"本科生"],[s.internationalPct,"国际生比例"],[s.acceptance,"录取率"]].map(([value,label])=>`<div class="profile-stat"><strong>${esc(value||"暂无数据")}</strong><span>${label}</span></div>`).join("")}</div></article>`;
+  const profile=s=>`<article><h3 class="profile-name">${esc(s.name)}</h3><div class="profile-meta">${esc([s.schoolType,s.region].filter(Boolean).join(" · ") || "暂无数据")}</div><div class="profile-stats">${[[s.internationalPct,"国际生比例"],[s.acceptance,"录取率"]].map(([value,label])=>`<div class="profile-stat"><strong>${esc(value||"暂无数据")}</strong><span>${label}</span></div>`).join("")}</div></article>`;
   return profile(a)+profile(b);
 }
 
@@ -511,26 +509,21 @@ function comparisonDetail(a,b){
       <div class="compare-school-head"><span class="compare-school-short">${esc(aHead)}</span><span class="compare-school-cn">${esc(a.name)}</span></div>
       <div class="compare-school-head"><span class="compare-school-short">${esc(bHead)}</span><span class="compare-school-cn">${esc(b.name)}</span></div>
     </div>
-    <h2 class="detail-section-title">学校概览</h2>
     ${metric("学校性质",a.schoolType,b.schoolType)}
     ${metric("地理位置",[locationText(a),a.region].filter(Boolean).join(" · "),[locationText(b),b.region].filter(Boolean).join(" · "))}
     ${metric("本科生规模",enrollmentText(a),enrollmentText(b))}
     ${metric("国际生比例",a.internationalPct,b.internationalPct)}
-    <h2 class="detail-section-title">学术</h2>
-    ${secondaryMetric("U.S. News 综合排名",rankingText(a),rankingText(b),a.rankYear?`${a.rankYear} 版`:"",b.rankYear?`${b.rankYear} 版`:"")}
-    <h2 class="detail-section-title">申请</h2>
+    ${secondaryMetric("排名",rankingText(a),rankingText(b),a.rankYear?`${a.rankYear} 版`:"",b.rankYear?`${b.rankYear} 版`:"")}
     ${metric("录取率",a.acceptance,b.acceptance)}
     ${metric("SAT（25–75百分位）",a.sat,b.sat)}
     ${metric("ACT（25–75百分位）",a.act,b.act)}
     ${secondaryMetric("标化政策",a.testPolicy,b.testPolicy,a.testCycle,b.testCycle)}
     ${metric("英语要求",englishText(a),englishText(b))}
-    <h2 class="detail-section-title">费用</h2>
     ${secondaryMetric("学费及必缴费用",moneyRmbWan(a.tuition),moneyRmbWan(b.tuition),a.tuitionYear?`${a.tuitionYear} 学年`:"",b.tuitionYear?`${b.tuitionYear} 学年`:"")}
     ${metric("总就读成本（COA）",moneyRmbWan(a.coa),moneyRmbWan(b.coa))}
     <p class="currency-note">人民币金额为估算，按固定参考汇率 7 换算。</p>
     ${metric("国际生按需助学金（Need-based Aid）",a.needAid,b.needAid)}
     ${metric("国际生择优奖学金（Merit Aid）",a.meritAid,b.meritAid)}
-    <h2 class="detail-section-title">结果</h2>
     ${metric("四年毕业率",a.graduation,b.graduation)}
   </div>`;
 }
@@ -621,7 +614,6 @@ document.getElementById("go").addEventListener("click",async ()=>{
     }
     if(version!==selectionVersion) return;
     const [a,b]=records.map(normalize);
-    document.getElementById("summaryTitle").textContent="一眼看懂学校";
     document.getElementById("summaryText").innerHTML=summary(a,b);
     document.getElementById("cards").innerHTML=comparisonDetail(a,b);
     result.style.display="block";

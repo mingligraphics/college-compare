@@ -24,13 +24,13 @@ const rows=[{school_id:'nyu',school_name_cn:'纽约大学',institution_control:'
  {school_id:'ucb',school_name_cn:'加州大学伯克利分校',institution_control:'public',school_type:'research_university',region:'west_coast',city_cn:'伯克利',tuition_fees:58484,tuition_fees_year:'2026-27',coa:93944,coa_year:'2026-27',undergrad_enrollment:33122,first_year_enrollment:6687,international_pct:9.82}];
 test('Basic v1 uses fees, correct control labels, derived regions, undergraduate counts and NULLs',async()=>{
  const t=await setup();t.choose('nyu','ucb');t.setReply(async()=>({ok:true,json:async()=>rows}));await t.els.go.handlers.click();
- for(const value of ['40.9万元人民币','29,471','33,122','25.55%','公立大学','私立非营利大学','美国西海岸','学费及必缴费用','暂无数据'])assert(t.els.cards.innerHTML.includes(value),value);
+ for(const value of ['40.9万元人民币','29,471','33,122','25.6%','公立大学','私立非营利大学','美国西海岸','学费及必缴费用','暂无数据'])assert(t.els.cards.innerHTML.includes(value),value);
  assert(!t.els.cards.innerHTML.includes('research_university'));
  assert(!t.els.cards.innerHTML.includes('east_coast'));
  assert.equal(t.els.result.style.display,'block');
  const unknown=t.run('normalize({tuition_fees:null,coa:null,international_pct:null})');assert.equal(unknown.tuition,null);assert.equal(unknown.coa,null);assert.equal(unknown.internationalPct,'');
  assert.equal(t.run('normalize({tuition_fees:0,international_pct:0}).tuition'),0);
- assert.equal(t.run('normalize({international_pct:0}).internationalPct'),'0%');
+ assert.equal(t.run('normalize({international_pct:0}).internationalPct'),'0.0%');
 });
 test('search, duplicate selection and empty selection do not send requests',async()=>{
  const t=await setup();for(const [query,n] of [['NYU',1],['纽约',1],['Berkeley',1],['MIT',1],['斯坦福',1],['UCLA',1],['USC',1],['zzzzz',0],['',10]]){t.els.schoolSearch.value=query;t.run('drawSchoolList()');assert.equal(t.els.schoolList.children.length,n);}
@@ -55,11 +55,17 @@ for(const [a,b] of [['mit','stanford'],['usc','ucla'],['harvard','princeton']]){
   const detail=t.els.cards.innerHTML,summary=t.els.summaryText.innerHTML;
   assert.equal(JSON.stringify(pair),before);
   assert.equal(t.els.schoolCount.textContent,'13所美国高校官方数据');
-  assert.deepEqual([...detail.matchAll(/class="detail-section-title">([^<]+)/g)].map(m=>m[1]),['学校概览','学术','申请','费用','结果']);
+  assert(!detail.includes('detail-section-title'));
+  assert(detail.includes('metric-title">排名</h3>'));
+  assert(!summary.includes('本科生'));
+  assert(!html.includes('一眼看懂学校'));
   assert(!/美元|\$|排名|万元|COA/.test(summary));
   assert(!/校园特点|职业特色|知名校友|明星专业|优势专业|national_university|test_optional|test_free|>0万元/.test(detail));
   for(const r of pair){
-   assert(summary.includes(`${r.acceptance_rate}%`));
+   assert(summary.includes(`${(Math.round(r.acceptance_rate*10)/10).toFixed(1)}%`));
+   assert(summary.includes(`${(Math.round(r.international_pct*10)/10).toFixed(1)}%`));
+   assert(![...summary.matchAll(/class="profile-meta">([^<]+)/g)].some(m=>m[1].includes(r.city_cn)));
+   assert(summary.includes(t.run(`normalize(${JSON.stringify(r)}).region`)));
    assert(detail.includes(`全美综合大学 #${r.ranking_usnews}`));
    assert(detail.includes(`${r.ranking_year} 版`));
    assert(detail.includes(`${r.graduation_rate_4yr}%`));
