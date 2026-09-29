@@ -470,7 +470,7 @@ function moneyRmbWan(n){
   const yuan=Math.round(n*USD_CNY_RATE);
   return Math.abs(yuan)<10000 ? `${yuan.toLocaleString("zh-CN")}元` : `${(yuan/10000).toFixed(1)}万元`;
 }
-function locationText(s){ return [s.stateCN||s.state,s.cityCN||s.city].filter(Boolean).join("") || s.locationCN; }
+function locationText(s){ return [s.stateCN||s.state,s.cityCN||s.city].filter(Boolean).join(" · ") || s.locationCN; }
 function summary(a,b){
   const profile=s=>`<article><h3 class="profile-name">${esc(s.name)}</h3><div class="profile-meta">${esc([s.schoolType,s.region].filter(Boolean).join(" · ") || "暂无数据")}</div><div class="profile-stats">${[[s.acceptance,"录取率"],[moneyRmbWan(s.tuition),"学费"]].map(([value,label])=>`<div class="profile-stat"><strong>${esc(value||"暂无数据")}</strong><span>${label}</span></div>`).join("")}</div></article>`;
   return profile(a)+profile(b);

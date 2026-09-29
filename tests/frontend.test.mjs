@@ -84,7 +84,7 @@ test('Display preserves blanks, zeroes, partial ranges and escapes source text',
  assert.equal(t.run('moneyRmbWan(510)'),'3,570元');
  assert.equal(t.run('aidText("limited")'),'有，但有限制');
  assert.equal(t.run('normalize({institution_control:"private_nonprofit"}).schoolType'),'私立大学');
- assert.equal(t.run('locationText(normalize({state_cn:"加州",city_cn:"伯克利"}))'),'加州伯克利');
+ assert.equal(t.run('locationText(normalize({state_cn:"加州",city_cn:"伯克利"}))'),'加州 · 伯克利');
  assert.equal(t.run('percent(0)'),'0%');
  assert.equal(t.run('scoreRange(null,1500)'),'');
  assert.equal(t.run('enrollmentText(normalize({undergrad_enrollment:null,first_year_enrollment:500}))'),'');
