@@ -61,11 +61,13 @@ for(const [a,b] of [['mit','stanford'],['usc','ucla'],['harvard','princeton']]){
   assert(detail.includes('metric-title">排名</h3>'));
   assert(!summary.includes('本科生'));
   assert(!html.includes('一眼看懂学校'));
-  assert(!/美元|\$|排名|万元|COA/.test(summary));
+  assert(!/美元|\$|排名|国际生比例|COA/.test(summary));
   assert(!/校园特点|职业特色|知名校友|明星专业|优势专业|national_university|test_optional|test_free|>0万元/.test(detail));
   for(const r of pair){
    assert(summary.includes(`${(Math.round(r.acceptance_rate*10)/10).toFixed(1)}%`));
-   assert(summary.includes(`${(Math.round(r.international_pct*10)/10).toFixed(1)}%`));
+   assert(detail.includes(`${(Math.round(r.international_pct*10)/10).toFixed(1)}%`));
+   assert(summary.includes((r.tuition_fees*7/10000).toFixed(1)+'万元'));
+   assert(summary.includes('<span>学费</span>'));
    assert(![...summary.matchAll(/class="profile-meta">([^<]+)/g)].some(m=>m[1].includes(r.city_cn)));
    assert(summary.includes(t.run(`normalize(${JSON.stringify(r)}).region`)));
    assert(detail.includes(`全美综合大学 #${r.ranking_usnews}`));

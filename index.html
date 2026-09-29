@@ -472,7 +472,7 @@ function moneyRmbWan(n){
 }
 function locationText(s){ return [s.stateCN||s.state,s.cityCN||s.city].filter(Boolean).join("") || s.locationCN; }
 function summary(a,b){
-  const profile=s=>`<article><h3 class="profile-name">${esc(s.name)}</h3><div class="profile-meta">${esc([s.schoolType,s.region].filter(Boolean).join(" · ") || "暂无数据")}</div><div class="profile-stats">${[[s.internationalPct,"国际生比例"],[s.acceptance,"录取率"]].map(([value,label])=>`<div class="profile-stat"><strong>${esc(value||"暂无数据")}</strong><span>${label}</span></div>`).join("")}</div></article>`;
+  const profile=s=>`<article><h3 class="profile-name">${esc(s.name)}</h3><div class="profile-meta">${esc([s.schoolType,s.region].filter(Boolean).join(" · ") || "暂无数据")}</div><div class="profile-stats">${[[moneyRmbWan(s.tuition),"学费"],[s.acceptance,"录取率"]].map(([value,label])=>`<div class="profile-stat"><strong>${esc(value||"暂无数据")}</strong><span>${label}</span></div>`).join("")}</div></article>`;
   return profile(a)+profile(b);
 }
 
