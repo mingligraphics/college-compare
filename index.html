@@ -314,12 +314,19 @@ h1{
 .metric-empty{color:#bbb;font-weight:400}
 @media(min-width:520px){.metric-long .metric-cols{display:grid}.metric-long .metric-cell + .metric-cell{border-top:0;margin-top:0;padding-top:0}.metric-long .metric-cell:first-child{border-right:1px solid #f0f0f0}}
 
+
+.profile-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:20px}
+.profile-name{font-size:17px;margin:0 0 6px}.profile-meta{color:#666;font-size:13px;line-height:1.7}
+.profile-stats{display:flex;flex-wrap:wrap;gap:8px 16px;margin-top:12px}.profile-stat strong{display:block;font-size:17px;color:#222}.profile-stat span{font-size:12px;color:#777}
+.detail-section-title{font-size:19px;margin:26px 0 0;padding:12px 16px;background:#f3f6f4;border-radius:10px}
+.metric-sub{display:block;font-size:12px;font-weight:400;color:#777;margin-top:5px}.currency-note{font-size:12px;color:#777;padding:0 16px}
+@media(max-width:480px){.profile-grid{gap:14px}.profile-name{font-size:15px}.profile-stats{display:grid;gap:8px}.profile-stat strong{font-size:16px}}
 </style>
 </head>
 <body>
 <main>
 <header>
-  <h1 class="site-title"><span class="cap-icon" aria-hidden="true"><svg viewBox="0 0 64 64" focusable="false"><path d="M4 24 32 10l28 14-28 14L4 24Zm12 7.5V43c0 5 7.2 9 16 9s16-4 16-9V31.5L32 40 16 31.5Zm39-3.2v15.8c0 1.6 1.3 2.9 2.9 2.9s2.9-1.3 2.9-2.9V25.4L55 28.3Z"/></svg></span><span>美国大学选校对比</span></h1><p class="subtitle"><span>200所美国高校官方数据</span><span>用数据，找到更适合你的大学</span></p>
+  <h1 class="site-title"><span class="cap-icon" aria-hidden="true"><svg viewBox="0 0 64 64" focusable="false"><path d="M4 24 32 10l28 14-28 14L4 24Zm12 7.5V43c0 5 7.2 9 16 9s16-4 16-9V31.5L32 40 16 31.5Zm39-3.2v15.8c0 1.6 1.3 2.9 2.9 2.9s2.9-1.3 2.9-2.9V25.4L55 28.3Z"/></svg></span><span>美国大学选校对比</span></h1><p class="subtitle"><span id="schoolCount">美国高校官方数据</span><span>用数据，找到更适合你的大学</span></p>
 </header>
 
 <section class="picker">
@@ -338,7 +345,7 @@ h1{
   <div class="section-label">选校指南</div>
   <section class="summary">
     <h2 id="summaryTitle"></h2>
-    <p id="summaryText"></p>
+    <div id="summaryText" class="profile-grid"></div>
   </section>
 
   <div class="section-label">学校对比</div>
@@ -418,6 +425,19 @@ function normalize(r){
   const majorsCN=list(r.famous_majors_cn);
   const internationalPct=r.international_pct;
   return {
+    acceptance:percent(r.acceptance_rate),
+    graduation:percent(r.graduation_rate_4yr),
+    sat:scoreRange(r.sat_25,r.sat_75),
+    act:scoreRange(r.act_25,r.act_75),
+    testPolicy:({required:"必须提交 SAT / ACT",test_optional:"可选择提交 SAT / ACT",test_free:"不考虑 SAT / ACT"})[r.test_policy] || "",
+    testCycle:r.test_policy_cycle || "",
+    englishPolicy:({required:"要求英语能力证明",conditional:"视条件要求，可符合豁免条件",not_required:"不要求英语能力证明"})[r.english_proficiency_policy] || "",
+    englishTests:list(r.english_tests_accepted),
+    needAid:aidText(r.international_need_aid),
+    meritAid:aidText(r.international_merit_aid),
+    rank:num(r.ranking_usnews),
+    rankCategory:({national_university:"全美综合大学",national_liberal_arts_college:"全美文理学院",liberal_arts_college:"全美文理学院"})[r.ranking_category] || "",
+    rankYear:r.ranking_year || "",
     id:r.school_id,
     name:r.school_name_cn || r.school_name || r.school_id,
     nameEn:r.school_name || "",
@@ -443,79 +463,18 @@ function normalize(r){
   };
 }
 
-function money(n){ return n==null ? "" : "$"+Math.round(n).toLocaleString("en-US"); }
-function moneyWanCN(n){ return n==null ? "" : (n/10000).toFixed(1)+"万美元"; }
-function moneyRmbWan(n){ return n==null ? "" : Math.round(n*7/10000)+"万元人民币"; }
-function locationText(s){ return s.locationCN || [s.state,s.city].filter(Boolean).join(""); }
-function displayCity(s){ return s.cityCN || s.city; }
-
-function compare(a,b){
-  return {
-    sameRegion:!!a.region && a.region===b.region,
-    sameCity:!!a.city && a.city===b.city,
-    sameType:!!a.schoolType && a.schoolType===b.schoolType,
-    bothCost:a.coa!=null && b.coa!=null,
-    costDiff:(a.coa!=null && b.coa!=null)?Math.abs(a.coa-b.coa):null,
-    majorOverlap:a.majors.filter(m=>b.majors.includes(m)),
-    onlyA:a.majors.filter(m=>!b.majors.includes(m)),
-    onlyB:b.majors.filter(m=>!a.majors.includes(m))
-  };
+function percent(v){ const n=num(v); return n!=null && n>=0 && n<=100 ? `${n}%` : ""; }
+function scoreRange(low,high){ return low!=null && high!=null ? `${low}–${high}` : ""; }
+function aidText(v){ return ({yes:"提供",no:"不提供",limited:"有限提供"})[v] || ""; }
+function moneyRmbWan(n){
+  if(n==null) return "";
+  const yuan=Math.round(n*USD_CNY_RATE);
+  return Math.abs(yuan)<10000 ? `${yuan.toLocaleString("zh-CN")}元人民币` : `${(yuan/10000).toFixed(1)}万元人民币`;
 }
-
-/*
-Summary order:
-1. Location
-2. Public/private
-3. Total cost
-4. Famous-major overlap/differences
-
-The program decides the facts first, then turns them into one natural paragraph.
-*/
+function locationText(s){ return s.locationCN || [s.cityCN||s.city,s.state].filter(Boolean).join("，"); }
 function summary(a,b){
-  const c=compare(a,b);
-  const sentences=[];
-
-  if(c.sameCity){
-    sentences.push(`${a.name}和${b.name}都位于${displayCity(a)}`);
-  } else if(c.sameRegion){
-    sentences.push(`${a.name}和${b.name}都位于${a.region}，${a.name}在${displayCity(a)}，${b.name}在${displayCity(b)}`);
-  } else if(a.region && b.region){
-    sentences.push(`${a.name}位于${a.region}的${displayCity(a)}，${b.name}位于${b.region}的${displayCity(b)}`);
-  } else {
-    sentences.push(`${a.name}位于${locationText(a)}，${b.name}位于${locationText(b)}`);
-  }
-
-  if(a.schoolType && b.schoolType){
-    sentences.push(c.sameType
-      ? `两所学校都是${a.schoolType}`
-      : `${a.name}是${a.schoolType}，而${b.name}是${b.schoolType}`);
-  }
-
-  if(c.bothCost){
-    if(a.coa===b.coa){
-      sentences.push(`费用方面，两校${a.coaYear || b.coaYear || ""}学年的年度总开销都约为${moneyWanCN(a.coa)}，约${moneyRmbWan(a.coa)}。`);
-    } else {
-      const high=a.coa>b.coa?a:b, low=high===a?b:a;
-      sentences.push(`费用方面，${high.name}${high.coaYear ? high.coaYear+"学年" : ""}的年度总开销约为${moneyWanCN(high.coa)}，约${moneyRmbWan(high.coa)}，高于${low.name}的${moneyWanCN(low.coa)}，约${moneyRmbWan(low.coa)}。`);
-    }
-  }
-
-  if(a.majors.length && b.majors.length){
-    let s=c.majorOverlap.length
-      ? `专业上，两校都在${c.majorOverlap.join("、")}等领域有较强项目`
-      : `专业上，两校目前列出的明星专业没有明显重合`;
-
-    if(c.onlyA.length && c.onlyB.length){
-      s += `，但${a.name}在${c.onlyA.join("、")}等方向更有代表性，而${b.name}则在${c.onlyB.join("、")}等领域更突出`;
-    } else if(c.onlyA.length){
-      s += `，此外${a.name}在${c.onlyA.join("、")}等方向更有代表性`;
-    } else if(c.onlyB.length){
-      s += `，此外${b.name}在${c.onlyB.join("、")}等方向更有代表性`;
-    }
-    sentences.push(s);
-  }
-
-  return sentences.map(s=>s.replace(/[。；;，,]+$/,"")).join("。")+"。";
+  const profile=s=>`<article><h3 class="profile-name">${esc(s.name)}</h3><div class="profile-meta">${esc([s.schoolType,locationText(s)].filter(Boolean).join(" · ") || "暂无数据")}</div><div class="profile-stats">${[[enrollmentText(s),"本科生"],[s.internationalPct,"国际生比例"],[s.acceptance,"录取率"]].map(([value,label])=>`<div class="profile-stat"><strong>${esc(value||"暂无数据")}</strong><span>${label}</span></div>`).join("")}</div></article>`;
+  return profile(a)+profile(b);
 }
 
 function esc(v){
@@ -523,7 +482,6 @@ function esc(v){
 }
 function enrollmentText(s){
   if(s.undergrad!=null) return s.undergrad.toLocaleString("en-US");
-  if(s.firstYear!=null) return `${s.firstYear.toLocaleString("en-US")}（新生人数）`;
   return "";
 }
 function cellValue(v,cls=""){
@@ -539,22 +497,12 @@ function metric(title,aValue,bValue,opts={}){
     : cellValue(aValue,opts.cls||"")+cellValue(bValue,opts.cls||"");
   return `<section class="metric${long}"><h3 class="metric-title">${esc(title)}</h3><div class="metric-cols">${labels}</div>${opts.insight?`<p class="metric-insight">${esc(opts.insight)}</p>`:""}</section>`;
 }
-function costCell(s){
-  if(s.coa==null) return "";
-  return `${moneyRmbWan(s.coa)}|${moneyWanCN(s.coa)}${s.coaYear?" · "+s.coaYear:""}`;
+function secondaryMetric(title,a,b,aSub="",bSub=""){
+  const render=(value,sub)=>`<div class="metric-cell"><span class="metric-value">${value?esc(value):'<span class="metric-empty">暂无数据</span>'}</span>${value&&sub?`<span class="metric-sub">${esc(sub)}</span>`:""}</div>`;
+  return `<section class="metric"><h3 class="metric-title">${esc(title)}</h3><div class="metric-cols">${render(a,aSub)}${render(b,bSub)}</div></section>`;
 }
-function costMetric(a,b){
-  const render=s=>{
-    if(s.coa==null) return `<div class="metric-cell"><span class="metric-empty">暂无数据</span></div>`;
-    return `<div class="metric-cell"><span class="metric-money">${esc(moneyRmbWan(s.coa))}</span><span class="metric-sub">${esc(moneyWanCN(s.coa))}${s.coaYear?" · "+esc(s.coaYear):""}</span></div>`;
-  };
-  let insight="";
-  if(a.coa!=null&&b.coa!=null&&a.coa!==b.coa){
-    const high=a.coa>b.coa?a:b;
-    insight=`${high.shortName||high.name} 年度总开销高约 ${moneyRmbWan(Math.abs(a.coa-b.coa))}`;
-  }
-  return `<section class="metric"><h3 class="metric-title">年度总开销</h3><div class="metric-cols">${render(a)}${render(b)}</div>${insight?`<p class="metric-insight">${esc(insight)}</p>`:""}</section>`;
-}
+function rankingText(s){ return s.rank!=null ? `${s.rankCategory || "U.S. News"} #${s.rank}` : ""; }
+function englishText(s){ return [s.englishPolicy,s.englishTests.length?`接受考试：${s.englishTests.join(" / ")}`:""].filter(Boolean).join("；"); }
 function comparisonDetail(a,b){
   const aHead=a.shortName||a.nameEn||a.name, bHead=b.shortName||b.nameEn||b.name;
   return `<div class="compare-detail">
@@ -562,16 +510,27 @@ function comparisonDetail(a,b){
       <div class="compare-school-head"><span class="compare-school-short">${esc(aHead)}</span><span class="compare-school-cn">${esc(a.name)}</span></div>
       <div class="compare-school-head"><span class="compare-school-short">${esc(bHead)}</span><span class="compare-school-cn">${esc(b.name)}</span></div>
     </div>
-    ${metric("地理位置", [locationText(a),a.region].filter(Boolean).join(" · "), [locationText(b),b.region].filter(Boolean).join(" · "))}
+    <h2 class="detail-section-title">学校概览</h2>
     ${metric("学校性质",a.schoolType,b.schoolType)}
-    ${metric("学费及必缴费用",a.tuition==null?"":money(a.tuition)+(a.tuitionYear?" · "+a.tuitionYear+" 学年":""),b.tuition==null?"":money(b.tuition)+(b.tuitionYear?" · "+b.tuitionYear+" 学年":""))}
-    ${costMetric(a,b)}
+    ${metric("地理位置",[locationText(a),a.region].filter(Boolean).join(" · "),[locationText(b),b.region].filter(Boolean).join(" · "))}
     ${metric("本科生规模",enrollmentText(a),enrollmentText(b))}
-    ${metric("明星专业",a.majors,b.majors)}
-    ${metric("国际生",a.internationalPct,b.internationalPct)}
-    ${metric("校园特点",a.campusCN||a.campusType,b.campusCN||b.campusType,{long:true,aLabel:aHead,bLabel:bHead})}
-    ${metric("职业特色",a.career,b.career,{long:true,aLabel:aHead,bLabel:bHead})}
-    ${metric("知名校友",a.alumni,b.alumni,{long:true,aLabel:aHead,bLabel:bHead})}
+    ${metric("国际生比例",a.internationalPct,b.internationalPct)}
+    <h2 class="detail-section-title">学术</h2>
+    ${secondaryMetric("U.S. News 综合排名",rankingText(a),rankingText(b),a.rankYear?`${a.rankYear} 版`:"",b.rankYear?`${b.rankYear} 版`:"")}
+    <h2 class="detail-section-title">申请</h2>
+    ${metric("录取率",a.acceptance,b.acceptance)}
+    ${metric("SAT（25–75百分位）",a.sat,b.sat)}
+    ${metric("ACT（25–75百分位）",a.act,b.act)}
+    ${secondaryMetric("标化政策",a.testPolicy,b.testPolicy,a.testCycle,b.testCycle)}
+    ${metric("英语要求",englishText(a),englishText(b))}
+    <h2 class="detail-section-title">费用</h2>
+    ${secondaryMetric("学费及必缴费用",moneyRmbWan(a.tuition),moneyRmbWan(b.tuition),a.tuitionYear?`${a.tuitionYear} 学年`:"",b.tuitionYear?`${b.tuitionYear} 学年`:"")}
+    ${metric("总就读成本（COA）",moneyRmbWan(a.coa),moneyRmbWan(b.coa))}
+    <p class="currency-note">人民币金额为估算，按固定参考汇率 7 换算。</p>
+    ${metric("国际生按需助学金（Need-based Aid）",a.needAid,b.needAid)}
+    ${metric("国际生择优奖学金（Merit Aid）",a.meritAid,b.meritAid)}
+    <h2 class="detail-section-title">结果</h2>
+    ${metric("四年毕业率",a.graduation,b.graduation)}
   </div>`;
 }
 
@@ -603,6 +562,7 @@ async function loadData(){
     })).filter(s=>s.id && s.name);
     schools=Object.fromEntries(list.map(s=>[s.id,s]));
     fillSelectors(list);
+    document.getElementById("schoolCount").textContent=`${Object.keys(schools).length}所美国高校官方数据`;
     status.textContent=`已读取 ${list.length} 所学校`;
     if(list.length<2) err.textContent="当前数据库只有一所学校；加入第二所学校后即可开始比较。";
   } catch(e){
@@ -660,8 +620,8 @@ document.getElementById("go").addEventListener("click",async ()=>{
     }
     if(version!==selectionVersion) return;
     const [a,b]=records.map(normalize);
-    document.getElementById("summaryTitle").textContent=`${a.name} vs ${b.name}`;
-    document.getElementById("summaryText").textContent=summary(a,b);
+    document.getElementById("summaryTitle").textContent="一眼看懂学校";
+    document.getElementById("summaryText").innerHTML=summary(a,b);
     document.getElementById("cards").innerHTML=comparisonDetail(a,b);
     result.style.display="block";
     result.scrollIntoView({behavior:"smooth"});
