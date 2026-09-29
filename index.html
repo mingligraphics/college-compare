@@ -446,7 +446,7 @@ function normalize(r){
     stateCN:r.state_cn || "",
     region:({east_coast:"美国东海岸",south:"美国南部",midwest:"美国中西部",west_coast:"美国西海岸",mountain_west:"美国西部山区",other:"美国其他地区"})[r.region] || "",
     locationCN:r.location_cn || "",
-    schoolType:({public:"公立大学",private_nonprofit:"私立非营利大学",private_forprofit:"私立营利大学"})[r.institution_control] || "",
+    schoolType:({public:"公立大学",private_nonprofit:"私立大学",private_forprofit:"私立营利大学"})[r.institution_control] || "",
     tuition:num(r.tuition_fees),
     tuitionYear:r.tuition_fees_year || "",
     coa:num(r.coa),
@@ -464,13 +464,13 @@ function normalize(r){
 
 function percent(v,digits){ const n=num(v); return n!=null && n>=0 && n<=100 ? `${digits==null?n:(Math.round(n*10**digits)/10**digits).toFixed(digits)}%` : ""; }
 function scoreRange(low,high){ return low!=null && high!=null ? `${low}–${high}` : ""; }
-function aidText(v){ return ({yes:"提供",no:"不提供",limited:"有限提供"})[v] || ""; }
+function aidText(v){ return ({yes:"提供",no:"不提供",limited:"资助机会有限"})[v] || ""; }
 function moneyRmbWan(n){
   if(n==null) return "";
   const yuan=Math.round(n*USD_CNY_RATE);
-  return Math.abs(yuan)<10000 ? `${yuan.toLocaleString("zh-CN")}元人民币` : `${(yuan/10000).toFixed(1)}万元人民币`;
+  return Math.abs(yuan)<10000 ? `${yuan.toLocaleString("zh-CN")}元` : `${(yuan/10000).toFixed(1)}万元`;
 }
-function locationText(s){ return s.cityCN && s.stateCN ? `${s.cityCN}，${s.stateCN}` : s.locationCN || [s.cityCN||s.city,s.stateCN||s.state].filter(Boolean).join("，"); }
+function locationText(s){ return [s.stateCN||s.state,s.cityCN||s.city].filter(Boolean).join("") || s.locationCN; }
 function summary(a,b){
   const profile=s=>`<article><h3 class="profile-name">${esc(s.name)}</h3><div class="profile-meta">${esc([s.schoolType,s.region].filter(Boolean).join(" · ") || "暂无数据")}</div><div class="profile-stats">${[[s.internationalPct,"国际生比例"],[s.acceptance,"录取率"]].map(([value,label])=>`<div class="profile-stat"><strong>${esc(value||"暂无数据")}</strong><span>${label}</span></div>`).join("")}</div></article>`;
   return profile(a)+profile(b);
@@ -480,7 +480,7 @@ function esc(v){
   return String(v ?? "").replace(/[&<>"]/g,ch=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[ch]));
 }
 function enrollmentText(s){
-  if(s.undergrad!=null) return s.undergrad.toLocaleString("en-US");
+  if(s.undergrad!=null) return String(s.undergrad);
   return "";
 }
 function cellValue(v,cls=""){
@@ -509,7 +509,6 @@ function comparisonDetail(a,b){
       <div class="compare-school-head"><span class="compare-school-short">${esc(aHead)}</span><span class="compare-school-cn">${esc(a.name)}</span></div>
       <div class="compare-school-head"><span class="compare-school-short">${esc(bHead)}</span><span class="compare-school-cn">${esc(b.name)}</span></div>
     </div>
-    ${metric("学校性质",a.schoolType,b.schoolType)}
     ${metric("地理位置",[locationText(a),a.region].filter(Boolean).join(" · "),[locationText(b),b.region].filter(Boolean).join(" · "))}
     ${metric("本科生规模",enrollmentText(a),enrollmentText(b))}
     ${metric("国际生比例",a.internationalPct,b.internationalPct)}
@@ -520,10 +519,10 @@ function comparisonDetail(a,b){
     ${secondaryMetric("标化政策",a.testPolicy,b.testPolicy,a.testCycle,b.testCycle)}
     ${metric("英语要求",englishText(a),englishText(b))}
     ${secondaryMetric("学费及必缴费用",moneyRmbWan(a.tuition),moneyRmbWan(b.tuition),a.tuitionYear?`${a.tuitionYear} 学年`:"",b.tuitionYear?`${b.tuitionYear} 学年`:"")}
-    ${metric("总就读成本（COA）",moneyRmbWan(a.coa),moneyRmbWan(b.coa))}
+    ${metric("总就读成本",moneyRmbWan(a.coa),moneyRmbWan(b.coa))}
     <p class="currency-note">人民币金额为估算，按固定参考汇率 7 换算。</p>
-    ${metric("国际生按需助学金（Need-based Aid）",a.needAid,b.needAid)}
-    ${metric("国际生择优奖学金（Merit Aid）",a.meritAid,b.meritAid)}
+    ${metric("国际生助学金",a.needAid,b.needAid)}
+    ${metric("国际生奖学金",a.meritAid,b.meritAid)}
     ${metric("四年毕业率",a.graduation,b.graduation)}
   </div>`;
 }
