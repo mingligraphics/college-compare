@@ -38,13 +38,13 @@ def thaw(value):
     return list(value) if isinstance(value, tuple) else value
 
 
-def validate_rows(rows, *, master):
+def validate_rows(rows, *, master, allowed_ids=ORDER):
     require(isinstance(rows, list) and rows, 'Expected nonempty school rows')
     result = {}
     for row in rows:
         keys(row, set(COLUMNS), 'publishable School record')
         sid = row['school_id']
-        require(type(sid) is str and sid in SCHOOLS, 'Unknown pilot school')
+        require(type(sid) is str and sid in allowed_ids, 'Unknown authorized school')
         require(sid not in result, 'Duplicate school')
         text(row['school_name'], 'school_name')
         for field in FIELDS:
@@ -77,7 +77,7 @@ def validate_rows(rows, *, master):
         for low, high in [('sat_25','sat_75'),('act_25','act_75')]:
             require(row[low] is None or row[high] is None or row[low] <= row[high], 'Reversed test percentiles')
         result[sid] = tuple(freeze(row[column]) for column in COLUMNS)
-    return tuple(result[sid] for sid in ORDER if sid in result)
+    return tuple(result[sid] for sid in allowed_ids if sid in result)
 
 
 def master_snapshot(document):

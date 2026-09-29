@@ -113,3 +113,11 @@ python3 -B -m unittest discover -s research -p 'test_*.py'
 node --test supabase/functions/compare-schools/handler.test.mjs \
   supabase/functions/compare-schools-basic-v1/handler.test.mjs tests/frontend.test.mjs
 ```
+
+## Explicit ten-school batch extension
+
+The pilot commands and their default scope above are unchanged. The separately
+allowlisted batch path, exception ledger, history preservation, non-executable
+Staging preview and future stage-specific apply guards are documented in
+[BATCH_PUBLISHER.md](BATCH_PUBLISHER.md). New schools must never be passed through
+the old pilot commands by weakening their defaults.
