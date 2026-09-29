@@ -472,7 +472,7 @@ function moneyRmbWan(n){
 }
 function locationText(s){ return [s.stateCN||s.state,s.cityCN||s.city].filter(Boolean).join("") || s.locationCN; }
 function summary(a,b){
-  const profile=s=>`<article><h3 class="profile-name">${esc(s.name)}</h3><div class="profile-meta">${esc([s.schoolType,s.region].filter(Boolean).join(" · ") || "暂无数据")}</div><div class="profile-stats">${[[moneyRmbWan(s.tuition),"学费"],[s.acceptance,"录取率"]].map(([value,label])=>`<div class="profile-stat"><strong>${esc(value||"暂无数据")}</strong><span>${label}</span></div>`).join("")}</div></article>`;
+  const profile=s=>`<article><h3 class="profile-name">${esc(s.name)}</h3><div class="profile-meta">${esc([s.schoolType,s.region].filter(Boolean).join(" · ") || "暂无数据")}</div><div class="profile-stats">${[[s.acceptance,"录取率"],[moneyRmbWan(s.tuition),"学费"]].map(([value,label])=>`<div class="profile-stat"><strong>${esc(value||"暂无数据")}</strong><span>${label}</span></div>`).join("")}</div></article>`;
   return profile(a)+profile(b);
 }
 
@@ -510,9 +510,9 @@ function comparisonDetail(a,b){
       <div class="compare-school-head"><span class="compare-school-short">${esc(bHead)}</span><span class="compare-school-cn">${esc(b.name)}</span></div>
     </div>
     ${metric("地理位置",[locationText(a),a.region].filter(Boolean).join(" · "),[locationText(b),b.region].filter(Boolean).join(" · "))}
+    ${secondaryMetric("排名",rankingText(a),rankingText(b),a.rankYear?`${a.rankYear} 版`:"",b.rankYear?`${b.rankYear} 版`:"")}
     ${metric("本科生规模",enrollmentText(a),enrollmentText(b))}
     ${metric("国际生比例",a.internationalPct,b.internationalPct)}
-    ${secondaryMetric("排名",rankingText(a),rankingText(b),a.rankYear?`${a.rankYear} 版`:"",b.rankYear?`${b.rankYear} 版`:"")}
     ${metric("录取率",a.acceptance,b.acceptance)}
     ${metric("SAT（25–75百分位）",a.sat,b.sat)}
     ${metric("ACT（25–75百分位）",a.act,b.act)}
