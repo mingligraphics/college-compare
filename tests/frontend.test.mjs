@@ -80,7 +80,7 @@ for(const [a,b] of [['mit','stanford'],['usc','ucla'],['harvard','princeton']]){
 test('Display preserves blanks, zeroes, partial ranges and escapes source text',async()=>{
  const t=await setup();
  assert.equal(t.run('moneyRmbWan(510)'),'3,570元');
- assert.equal(t.run('aidText("limited")'),'资助机会有限');
+ assert.equal(t.run('aidText("limited")'),'有，但有限制');
  assert.equal(t.run('normalize({institution_control:"private_nonprofit"}).schoolType'),'私立大学');
  assert.equal(t.run('locationText(normalize({state_cn:"加州",city_cn:"伯克利"}))'),'加州伯克利');
  assert.equal(t.run('percent(0)'),'0%');

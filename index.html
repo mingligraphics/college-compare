@@ -464,7 +464,7 @@ function normalize(r){
 
 function percent(v,digits){ const n=num(v); return n!=null && n>=0 && n<=100 ? `${digits==null?n:(Math.round(n*10**digits)/10**digits).toFixed(digits)}%` : ""; }
 function scoreRange(low,high){ return low!=null && high!=null ? `${low}–${high}` : ""; }
-function aidText(v){ return ({yes:"提供",no:"不提供",limited:"资助机会有限"})[v] || ""; }
+function aidText(v){ return ({yes:"有",no:"无",limited:"有，但有限制"})[v] || ""; }
 function moneyRmbWan(n){
   if(n==null) return "";
   const yuan=Math.round(n*USD_CNY_RATE);
