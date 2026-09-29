@@ -33,7 +33,8 @@ test('Basic v1 uses fees, correct control labels, derived regions, undergraduate
  assert.equal(t.run('normalize({international_pct:0}).internationalPct'),'0%');
 });
 test('search, duplicate selection and empty selection do not send requests',async()=>{
- const t=await setup();for(const [query,n] of [['NYU',1],['纽约',1],['Berkeley',1],['zzzzz',0],['',3]]){t.els.schoolSearch.value=query;t.run('drawSchoolList()');assert.equal(t.els.schoolList.children.length,n);}
+ const t=await setup();for(const [query,n] of [['NYU',1],['纽约',1],['Berkeley',1],['MIT',1],['斯坦福',1],['UCLA',1],['USC',1],['zzzzz',0],['',10]]){t.els.schoolSearch.value=query;t.run('drawSchoolList()');assert.equal(t.els.schoolList.children.length,n);}
+ assert.equal(t.run('Object.keys(schools).length'),13);
  await t.els.go.handlers.click();t.choose('nyu','nyu');await t.els.go.handlers.click();assert.equal(t.calls(),0);
 });
 test('loading restores on success, HTTP/network/JSON errors and malformed pairs',async()=>{
