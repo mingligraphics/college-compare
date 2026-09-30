@@ -376,7 +376,7 @@ h1{
 
 <script>
 const DATA_URL = "./school.csv";
-const COMPARE_URL = "https://hmnoqybdcfwqbjhorwzd.supabase.co/functions/v1/compare-schools-basic-v1";
+const COMPARE_URL = "https://hmnoqybdcfwqbjhorwzd.supabase.co/functions/v1/compare-schools-basic-v2";
 let schools = {};
 let comparing = false;
 let selectionVersion = 0;
@@ -423,6 +423,9 @@ function normalize(r){
   const majorsCN=list(r.famous_majors_cn);
   const internationalPct=r.international_pct;
   return {
+    signaturePrograms:Array.isArray(r.signature_programs)?r.signature_programs.map(p=>p.name_cn||p.name_en).filter(Boolean):[],
+    gpa:scoreRange(r.gpa_unweighted_25,r.gpa_unweighted_75),
+    gpaContext:[({admitted_first_year:"获录取新生",enrolled_first_year:"入学新生"})[r.gpa_population]||r.gpa_population,r.gpa_year].filter(Boolean).join(" · "),
     acceptance:percent(r.acceptance_rate,1),
     graduation:percent(r.graduation_rate_4yr),
     sat:scoreRange(r.sat_25,r.sat_75),
@@ -513,10 +516,12 @@ function comparisonDetail(a,b){
     ${metric("排名",rankingText(a),rankingText(b))}
     ${metric("本科生规模",enrollmentText(a),enrollmentText(b))}
     ${metric("国际生比例",a.internationalPct,b.internationalPct)}
+    ${metric("优势专业",a.signaturePrograms,b.signaturePrograms)}
     ${metric("录取率",a.acceptance,b.acceptance)}
     ${metric("标化政策",a.testPolicy,b.testPolicy)}
     ${metric("SAT（25–75百分位）",a.sat,b.sat)}
     ${metric("ACT（25–75百分位）",a.act,b.act)}
+    ${secondaryMetric("未加权 GPA（25–75百分位）",a.gpa,b.gpa,a.gpaContext,b.gpaContext)}
     ${metric("英语要求",englishText(a),englishText(b))}
     ${secondaryMetric("学杂费",moneyRmbWan(a.tuition),moneyRmbWan(b.tuition),a.tuitionYear?`${a.tuitionYear} 学年`:"",b.tuitionYear?`${b.tuitionYear} 学年`:"")}
     ${metric("总费用",moneyRmbWan(a.coa),moneyRmbWan(b.coa))}

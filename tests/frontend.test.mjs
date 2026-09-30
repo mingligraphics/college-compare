@@ -14,7 +14,7 @@ async function setup(){
  const context=vm.createContext({document:{getElementById:id=>els[id]??=new El(),createElement:()=>new El(),body:new El(),addEventListener(){}},console,AbortController,
  setTimeout:(f,t)=>{if(t===50){f();return 0;}timers.set(++tid,f);return tid;},clearTimeout:id=>timers.delete(id),fetch:async(url,options)=>{
  if(url.startsWith('./school.csv'))return {ok:true,text:async()=>csv};
- assert.match(url,/\/compare-schools-basic-v1$/);calls++;return reply(options);
+ assert.match(url,/\/compare-schools-basic-v2$/);calls++;return reply(options);
  }});
  vm.runInContext(html.match(/<script>([\s\S]*?)<\/script>/)[1],context);await new Promise(setImmediate);
  const run=s=>vm.runInContext(s,context);
@@ -34,7 +34,7 @@ test('Basic v1 uses fees, correct control labels, derived regions, undergraduate
 });
 test('search, duplicate selection and empty selection do not send requests',async()=>{
  const t=await setup();for(const [query,n] of [['NYU',1],['纽约',1],['Berkeley',1],['MIT',1],['斯坦福',1],['UCLA',1],['USC',1],['zzzzz',0],['',10]]){t.els.schoolSearch.value=query;t.run('drawSchoolList()');assert.equal(t.els.schoolList.children.length,n);}
- assert.equal(t.run('Object.keys(schools).length'),13);
+ assert.equal(t.run('Object.keys(schools).length'),33);
  await t.els.go.handlers.click();t.choose('nyu','nyu');await t.els.go.handlers.click();assert.equal(t.calls(),0);
 });
 test('loading restores on success, HTTP/network/JSON errors and malformed pairs',async()=>{
@@ -54,7 +54,7 @@ for(const [a,b] of [['mit','stanford'],['usc','ucla'],['harvard','princeton']]){
   t.choose(a,b);t.setReply(async()=>({ok:true,json:async()=>pair}));await t.els.go.handlers.click();
   const detail=t.els.cards.innerHTML,summary=t.els.summaryText.innerHTML;
   assert.equal(JSON.stringify(pair),before);
-  assert.equal(t.els.schoolCount.textContent,'13所美国高校官方数据');
+  assert.equal(t.els.schoolCount.textContent,'33所美国高校官方数据');
   assert(!detail.includes('detail-section-title'));
   assert(!detail.includes('学校性质'));
   assert(detail.indexOf('metric-title">标化政策') < detail.indexOf('metric-title">SAT'));
@@ -65,7 +65,7 @@ for(const [a,b] of [['mit','stanford'],['usc','ucla'],['harvard','princeton']]){
   assert(!summary.includes('本科生'));
   assert(!html.includes('一眼看懂学校'));
   assert(!/美元|\$|排名|国际生比例|COA/.test(summary));
-  assert(!/校园特点|职业特色|知名校友|明星专业|优势专业|national_university|test_optional|test_free|>0万元/.test(detail));
+  assert(!/校园特点|职业特色|知名校友|明星专业|national_university|test_optional|test_free|>0万元/.test(detail));
   for(const r of pair){
    assert(summary.includes(`${(Math.round(r.acceptance_rate*10)/10).toFixed(1)}%`));
    assert(detail.includes(`${(Math.round(r.international_pct*10)/10).toFixed(1)}%`));
@@ -96,4 +96,12 @@ test('Display preserves blanks, zeroes, partial ranges and escapes source text',
  assert(!detail.includes('#0'));assert(detail.includes('暂无数据'));
  const s=t.run('summary(normalize({school_name_cn:"<img src=x>"}),normalize({}))');
  assert(!s.includes('<img'));assert(s.includes('&lt;img'));
+});
+
+test('T1 search and signature/GPA display preserve scope and escape names',async()=>{
+ const t=await setup();
+ for(const id of ['duke','northwestern','uci','uva'])assert(t.run(`Boolean(schools['${id}'])`));
+ const detail=t.run(`comparisonDetail(normalize({signature_programs:[{name_cn:'<b>专业</b>',selection_basis:'renowned'}],gpa_unweighted_25:3.8,gpa_unweighted_75:4,gpa_population:'admitted_first_year',gpa_year:'Fall 2025'}),normalize({}))`);
+ assert(detail.includes('&lt;b&gt;专业&lt;/b&gt;'));assert(!detail.includes('<b>专业'));
+ assert(detail.includes('获录取新生'));assert(detail.includes('3.8–4'));assert(!detail.includes('renowned'));
 });
