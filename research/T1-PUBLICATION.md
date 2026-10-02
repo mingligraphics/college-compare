@@ -59,3 +59,35 @@ require readback before retry. The same Python, API/frontend, exact database
 readback and live endpoint tests apply. This run approves Notre Dame and Penn
 State only; the search catalog contains 35 schools. Private evidence and
 publication payloads remain outside public source control.
+
+## Universe v1 Basic-bundle publication — 2026-10-02
+
+Ming explicitly approved location, undergraduate enrollment, undergraduate
+international share and acceptance rate as the initial-publication minimum,
+with matching year/scope metadata and supported historical values retained.
+The incremental publisher accepts this exact threshold only through a sealed
+`initial_publication_threshold` approval. It preserves `unresearched` nulls
+and all other recorded source-absence/conflict/scope/cost-selection categories;
+none is automatically converted to an intentional blank. Required bundle
+values and metadata remain mandatory.
+
+The expanded projection is a fixed allowlist of the 56 already-existing
+production columns. The original forty Basic fields and their validation are
+unchanged. Optional existing fields are type-checked; no DDL or arbitrary
+SQL identifiers are allowed. The original two-school/T1 paths retain their
+previous approval rules. Value/evidence hashes, exact per-field null manifests,
+original null lineage, reciprocal evidence, schema/full-row guards and
+insert collision protection remain required. Repeated evidence-file hashes
+are cached within one verification call only.
+
+Approved Universe Sources/Staging pairs and publication receipts are retained
+in dedicated native evidence tabs, with canonical null classifications also
+in new School cell notes. Existing evidence sheets and the prior 35 School
+and production records are unchanged. Existing region/location view mappings
+are reused during master readback, without adding School columns.
+
+The approved 258 rows were rehearsed with rollback, promoted, committed once
+and verified by full readback. Production/search catalog scope is 293 schools.
+Boston College, Indiana University Indianapolis, Tufts, Alaska Fairbanks,
+Colorado Denver, UIUC and Pittsburgh fail the bundle and remain unpublished.
+Private evidence, approvals and payloads are not committed to public Git.

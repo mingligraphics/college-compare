@@ -33,8 +33,8 @@ test('Basic v1 uses fees, correct control labels, derived regions, undergraduate
  assert.equal(t.run('normalize({international_pct:0}).internationalPct'),'0.0%');
 });
 test('search, duplicate selection and empty selection do not send requests',async()=>{
- const t=await setup();for(const [query,n] of [['NYU',1],['纽约',1],['Berkeley',1],['MIT',1],['斯坦福',1],['UCLA',1],['USC',1],['zzzzz',0],['',10]]){t.els.schoolSearch.value=query;t.run('drawSchoolList()');assert.equal(t.els.schoolList.children.length,n);}
- assert.equal(t.run('Object.keys(schools).length'),35);
+ const t=await setup();for(const [query,n] of [['NYU',1],['纽约',1],['Berkeley',1],['MIT',3],['斯坦福',1],['UCLA',1],['USC',1],['zzzzz',0],['',10]]){t.els.schoolSearch.value=query;t.run('drawSchoolList()');assert.equal(t.els.schoolList.children.length,n,query);if(query==='MIT')assert(t.els.schoolList.children.some(el=>el.children[0].textContent===t.run('schools.mit.name')));}
+ assert.equal(t.run('Object.keys(schools).length'),293);
  await t.els.go.handlers.click();t.choose('nyu','nyu');await t.els.go.handlers.click();assert.equal(t.calls(),0);
 });
 test('loading restores on success, HTTP/network/JSON errors and malformed pairs',async()=>{
@@ -54,7 +54,7 @@ for(const [a,b] of [['mit','stanford'],['usc','ucla'],['harvard','princeton']]){
   t.choose(a,b);t.setReply(async()=>({ok:true,json:async()=>pair}));await t.els.go.handlers.click();
   const detail=t.els.cards.innerHTML,summary=t.els.summaryText.innerHTML;
   assert.equal(JSON.stringify(pair),before);
-  assert.equal(t.els.schoolCount.textContent,'35所美国高校官方数据');
+  assert.equal(t.els.schoolCount.textContent,'293所美国高校官方数据');
   assert(!detail.includes('detail-section-title'));
   assert(!detail.includes('学校性质'));
   assert(detail.indexOf('metric-title">标化政策') < detail.indexOf('metric-title">SAT'));
@@ -111,7 +111,17 @@ test('Approved incremental schools are searchable and render nullable v2 fields 
  const t=await setup();
  for(const query of ['Notre Dame','Pennsylvania State']){t.els.schoolSearch.value=query;t.run('drawSchoolList()');assert.equal(t.els.schoolList.children.length,1);}
  t.choose('notre_dame','penn_state');t.setReply(async()=>({ok:true,json:async()=>incremental}));await t.els.go.handlers.click();
- assert.equal(t.els.result.style.display,'block');assert.equal(t.els.schoolCount.textContent,'35所美国高校官方数据');
+ assert.equal(t.els.result.style.display,'block');assert.equal(t.els.schoolCount.textContent,'293所美国高校官方数据');
  const output=t.els.cards.innerHTML;assert(output.includes('暂无数据'));assert(!output.includes('#0'));assert(!output.includes('undefined'));assert(!output.includes('NaN'));
  for(const row of incremental)assert(output.includes(row.school_name));
+});
+
+test('Universe v1 approved Basic-bundle catalog includes new IDs and excludes seven failures',async()=>{
+ const t=await setup();assert.equal(t.run('Object.keys(schools).length'),293);
+ for(const id of ['us_131159','us_164465','us_104151','gatech','wisconsin','uw'])assert(t.run(`Boolean(schools['${id}'])`));
+ for(const id of ['bc','us_151111','tufts','us_102614','us_126562','uiuc','pitt'])assert(!t.run(`Boolean(schools['${id}'])`));
+ for(const query of ['American University','Amherst College']){t.els.schoolSearch.value=query;t.run('drawSchoolList()');assert.equal(t.els.schoolList.children.length,1);}
+ const pair=[{school_id:'us_131159',school_name:'American University',city:'Washington',state:'DC',institution_control:'private_nonprofit',undergrad_enrollment:100,international_pct:10,acceptance_rate:50,tuition_fees:null,coa:null,english_proficiency_policy:null,test_policy:null,signature_programs:null},{school_id:'us_164465',school_name:'Amherst College',city:'Amherst',state:'MA',institution_control:'private_nonprofit',undergrad_enrollment:200,international_pct:20,acceptance_rate:25,tuition_fees:null,coa:null}];
+ t.choose('us_131159','us_164465');t.setReply(async()=>({ok:true,json:async()=>pair}));await t.els.go.handlers.click();assert.equal(t.els.result.style.display,'block');assert.equal(t.els.schoolCount.textContent,'293所美国高校官方数据');
+ const output=t.els.cards.innerHTML;assert(output.includes('暂无数据'));assert(!output.includes('#0'));assert(!output.includes('undefined'));assert(!output.includes('NaN'));assert(output.includes('American University'));assert(output.includes('Amherst College'));
 });
