@@ -34,7 +34,7 @@ test('Basic v1 uses fees, correct control labels, derived regions, undergraduate
 });
 test('search, duplicate selection and empty selection do not send requests',async()=>{
  const t=await setup();for(const [query,n] of [['NYU',1],['纽约',1],['Berkeley',1],['MIT',1],['斯坦福',1],['UCLA',1],['USC',1],['zzzzz',0],['',10]]){t.els.schoolSearch.value=query;t.run('drawSchoolList()');assert.equal(t.els.schoolList.children.length,n);}
- assert.equal(t.run('Object.keys(schools).length'),33);
+ assert.equal(t.run('Object.keys(schools).length'),35);
  await t.els.go.handlers.click();t.choose('nyu','nyu');await t.els.go.handlers.click();assert.equal(t.calls(),0);
 });
 test('loading restores on success, HTTP/network/JSON errors and malformed pairs',async()=>{
@@ -54,7 +54,7 @@ for(const [a,b] of [['mit','stanford'],['usc','ucla'],['harvard','princeton']]){
   t.choose(a,b);t.setReply(async()=>({ok:true,json:async()=>pair}));await t.els.go.handlers.click();
   const detail=t.els.cards.innerHTML,summary=t.els.summaryText.innerHTML;
   assert.equal(JSON.stringify(pair),before);
-  assert.equal(t.els.schoolCount.textContent,'33所美国高校官方数据');
+  assert.equal(t.els.schoolCount.textContent,'35所美国高校官方数据');
   assert(!detail.includes('detail-section-title'));
   assert(!detail.includes('学校性质'));
   assert(detail.indexOf('metric-title">标化政策') < detail.indexOf('metric-title">SAT'));
@@ -104,4 +104,14 @@ test('T1 search and signature/GPA display preserve scope and escape names',async
  const detail=t.run(`comparisonDetail(normalize({signature_programs:[{name_cn:'<b>专业</b>',selection_basis:'renowned'}],gpa_unweighted_25:3.8,gpa_unweighted_75:4,gpa_population:'admitted_first_year',gpa_year:'Fall 2025'}),normalize({}))`);
  assert(detail.includes('&lt;b&gt;专业&lt;/b&gt;'));assert(!detail.includes('<b>专业'));
  assert(detail.includes('获录取新生'));assert(detail.includes('3.8–4'));assert(!detail.includes('renowned'));
+});
+
+const incremental=[{"school_id":"notre_dame","school_name":"University of Notre Dame","school_name_cn":null,"short_name":null,"institution_control":"private_nonprofit","school_type":null,"city":"Notre Dame","city_cn":null,"state":"IN","state_cn":null,"tuition_fees":69794,"tuition_fees_year":"2026-27","coa":91986,"coa_year":"2026-27","undergrad_enrollment":8950,"undergrad_enrollment_year":"Fall 2025","applicants":35401,"admitted":3320,"first_year_enrollment":2118,"acceptance_rate":9.38,"admissions_year":"Fall 2025","sat_25":1460,"sat_75":1540,"act_25":33,"act_75":35,"test_policy":"test_optional","test_policy_cycle":"Fall 2027","international_pct":7.58,"international_pct_year":"Fall 2025","international_pct_scope":"undergraduate","graduation_rate_4yr":89.84,"graduation_rate_4yr_year":"Fall 2019 entering cohort; four-year cutoff 2023-08-31","international_need_aid":"yes","international_merit_aid":"yes","english_proficiency_policy":"conditional","english_tests_accepted":["TOEFL","IELTS","Duolingo","PTE"],"english_policy_cycle":null,"ranking_usnews":null,"ranking_category":null,"ranking_year":null,"gpa_unweighted_25":null,"gpa_unweighted_75":null,"gpa_scale_definition":null,"gpa_population":null,"gpa_year":null,"signature_programs":null},{"school_id":"penn_state","school_name":"Pennsylvania State University (University Park)","school_name_cn":null,"short_name":null,"institution_control":"public","school_type":null,"city":"University Park","city_cn":null,"state":"PA","state_cn":"宾夕法尼亚州","tuition_fees":45214,"tuition_fees_year":"2026-27","coa":67828,"coa_year":"2026-27","undergrad_enrollment":42822,"undergrad_enrollment_year":"Fall 2025","applicants":106547,"admitted":58952,"first_year_enrollment":9148,"acceptance_rate":55.33,"admissions_year":"Fall 2025","sat_25":1280,"sat_75":1410,"act_25":28,"act_75":32,"test_policy":"test_optional","test_policy_cycle":null,"international_pct":9.3,"international_pct_year":"Fall 2025","international_pct_scope":"undergraduate","graduation_rate_4yr":70.77,"graduation_rate_4yr_year":"Fall 2019 entering cohort; four-year cutoff 2023-08-31","international_need_aid":"no","international_merit_aid":"no","english_proficiency_policy":"conditional","english_tests_accepted":["Duolingo","TOEFL","IELTS","SAT EBRW","ACT English","GCSE English","GCE English","IB English A"],"english_policy_cycle":null,"ranking_usnews":null,"ranking_category":null,"ranking_year":null,"gpa_unweighted_25":null,"gpa_unweighted_75":null,"gpa_scale_definition":"CDS C11 states 4.0 scale; unweighted status, courses and grade years included are not specified. No percentile endpoints reported.","gpa_population":"enrolled_first_year","gpa_year":"Fall 2025","signature_programs":null}];
+test('Approved incremental schools are searchable and render nullable v2 fields safely',async()=>{
+ const t=await setup();
+ for(const query of ['Notre Dame','Pennsylvania State']){t.els.schoolSearch.value=query;t.run('drawSchoolList()');assert.equal(t.els.schoolList.children.length,1);}
+ t.choose('notre_dame','penn_state');t.setReply(async()=>({ok:true,json:async()=>incremental}));await t.els.go.handlers.click();
+ assert.equal(t.els.result.style.display,'block');assert.equal(t.els.schoolCount.textContent,'35所美国高校官方数据');
+ const output=t.els.cards.innerHTML;assert(output.includes('暂无数据'));assert(!output.includes('#0'));assert(!output.includes('undefined'));assert(!output.includes('NaN'));
+ for(const row of incremental)assert(output.includes(row.school_name));
 });

@@ -23,7 +23,10 @@ def digest(value):
     return hashlib.sha256(json.dumps(value, sort_keys=True, ensure_ascii=False,
                                      allow_nan=False).encode()).hexdigest()
 
-def selected_rows(rows):
+def selected_rows(rows, *, approval=None):
+    if approval is not None:
+        from incremental_publish import selected_rows as select_incremental
+        return select_incremental(rows, approval)
     require(len({r['school_id'] for r in rows}) == len(rows), 'Duplicate School IDs')
     selected = {r['school_id']:r for r in rows if r['school_id'] in IDS}
     require(set(selected) == set(IDS), 'All 20 T1 schools required')
@@ -54,12 +57,20 @@ def selected_rows(rows):
         result.append(r)
     return result
 
-def build_sql(rows, before, migration, *, rollback=False):
+def build_sql(rows, before, migration=None, *, rollback=False, approval=None, master=None, provenance=None, approved_digest=None):
     """One transaction guards the full before-image, adds schema and inserts T1.
 
     Full-row verification prevents changes to any of the pre-existing schools.
     A failed or uncertain request must be investigated, never blindly replayed.
     """
+    if approval is not None:
+        from incremental_publish import publication_plan, build_sql as incremental_sql, selected_rows as select_incremental, master_projection
+        require(migration is None, 'Incremental publication never changes schema')
+        require(master is not None and provenance is not None, 'Fresh master and approved provenance required')
+        require(select_incremental(rows, approval) == master_projection(master, approval), 'Master/payload mismatch')
+        plan = publication_plan(master, before, approval, provenance)
+        return incremental_sql(plan, approved_digest, rollback=rollback)
+    require(isinstance(migration, str), 'Legacy T1 migration required')
     rows = selected_rows(rows)
     require(not (set(IDS) & {r['school_id'] for r in before['rows']}), 'T1 already present; inspect instead of replay')
     require(not before['triggers'], 'Unexpected triggers')

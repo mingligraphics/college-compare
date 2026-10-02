@@ -36,3 +36,26 @@ partial ranges remain unavailable. Legacy famous-majors fields are not substitut
 
 Validation: Python publisher/regression suite; Node API/frontend suite; database
 rollback rehearsal, exact post-commit readback and deployed endpoint smoke tests.
+
+## Incremental publication — 2026-10-02
+
+The original twenty-school migration remains a legacy one-time path. Calling
+`t1_publish.build_sql` with an explicit subset `approval`, fresh complete `master`,
+paired `provenance`, and sealed `approved_digest` now delegates to
+`incremental_publish`. It reuses the forty Basic fields and six already-deployed
+nullable v2 fields; it never performs a migration. An approval binds exact IDs,
+names, research IDs, per-school insert/update/noop operations, values, evidence,
+and explicitly deferred fields. Signature NULLs require explicit deferral; core
+NULLs require supported approved-blank decisions. Full schema, constraints,
+triggers, existing rows, reciprocal source records and attachment hashes are
+guarded. Inserts refuse collisions; updates touch only approved IDs and columns.
+There is no implicit upsert or automatic selection of the whole master.
+
+The operator promotes matched Sources/Staging pairs, records existing T1 blank
+and policy-cycle exceptions without replacing formula outputs, promotes only
+the approved School rows, and verifies fresh readbacks. Publication rehearses
+with rollback and commits the sealed before-image once; uncertain outcomes
+require readback before retry. The same Python, API/frontend, exact database
+readback and live endpoint tests apply. This run approves Notre Dame and Penn
+State only; the search catalog contains 35 schools. Private evidence and
+publication payloads remain outside public source control.
