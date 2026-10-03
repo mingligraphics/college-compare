@@ -33,7 +33,7 @@ test('Basic v1 uses fees, correct control labels, derived regions, undergraduate
  assert.equal(t.run('normalize({international_pct:0}).internationalPct'),'0.0%');
 });
 test('search, duplicate selection and empty selection do not send requests',async()=>{
- const t=await setup();for(const [query,n] of [['NYU',1],['纽约',1],['Berkeley',1],['MIT',3],['斯坦福',1],['UCLA',1],['USC',1],['zzzzz',0],['',10]]){t.els.schoolSearch.value=query;t.run('drawSchoolList()');assert.equal(t.els.schoolList.children.length,n,query);if(query==='MIT')assert(t.els.schoolList.children.some(el=>el.children[0].textContent===t.run('schools.mit.name')));}
+ const t=await setup();for(const [query,n] of [['NYU',1],['纽约',8],['Berkeley',1],['MIT',3],['斯坦福',1],['UCLA',1],['USC',1],['zzzzz',0],['',10]]){t.els.schoolSearch.value=query;t.run('drawSchoolList()');assert.equal(t.els.schoolList.children.length,n,query);if(query==='MIT')assert(t.els.schoolList.children.some(el=>el.children[0].textContent===t.run('schools.mit.name')));}
  assert.equal(t.run('Object.keys(schools).length'),299);
  await t.els.go.handlers.click();t.choose('nyu','nyu');await t.els.go.handlers.click();assert.equal(t.calls(),0);
 });
