@@ -26,7 +26,8 @@ ENUMS = {
  'international_need_aid': {'yes','limited','no','unclear'},
  'international_merit_aid': {'yes','limited','no','unclear'},
  'english_proficiency_policy': {'required','conditional','not_required','unclear'},
- 'ranking_category': {'national_university','national_liberal_arts_college','other'},
+ 'ranking_category': {'national_university','national_liberal_arts_college','other',
+                      'regional_university_north','regional_university_midwest','regional_university_west'},
 }
 
 

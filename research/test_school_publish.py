@@ -274,3 +274,15 @@ class PublisherTests(unittest.TestCase):
 
 if __name__ == '__main__':
     unittest.main()
+
+
+class RegionalRankingContract(unittest.TestCase):
+    def test_regional_ranks_validate_without_weakening_unknown_category_rejection(self):
+        from school_publish import validate_rows
+        from sources import ValidationError
+        for category in ('regional_university_north','regional_university_midwest','regional_university_west'):
+            r=row('nyu');r.update(ranking_usnews=2,ranking_category=category,ranking_year=2027)
+            validate_rows([r],master=True,allowed_ids=['nyu'])
+        r=row('nyu');r.update(ranking_usnews=2,ranking_category='unverified_category',ranking_year=2027)
+        with self.assertRaises(ValidationError):
+            validate_rows([r],master=True,allowed_ids=['nyu'])

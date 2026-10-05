@@ -126,3 +126,12 @@ test('Universe v1 catalog includes supported schools and excludes Denver',async(
  t.choose('us_131159','us_164465');t.setReply(async()=>({ok:true,json:async()=>pair}));await t.els.go.handlers.click();assert.equal(t.els.result.style.display,'block');assert.equal(t.els.schoolCount.textContent,'299所美国高校官方数据');
  const output=t.els.cards.innerHTML;assert(output.includes('暂无数据'));assert(!output.includes('#0'));assert(!output.includes('undefined'));assert(!output.includes('NaN'));assert(output.includes('American University'));assert(output.includes('Amherst College'));
 });
+
+test('Regional ranks retain their exact regional category alongside national ranks',async()=>{
+ const t=await setup();
+ for(const [code,label] of [['regional_university_north','北部地区大学'],['regional_university_midwest','中西部地区大学'],['regional_university_west','西部地区大学']]){
+  assert.equal(t.run(`rankingText(normalize(${JSON.stringify({ranking_usnews:2,ranking_category:code,ranking_year:2027})}))`),`${label} #2`);
+ }
+ assert.equal(t.run('rankingText(normalize({ranking_usnews:2,ranking_category:"national_liberal_arts_college",ranking_year:2027}))'),'全美文理学院 #2');
+ assert.equal(t.run('rankingText(normalize({ranking_usnews:null,ranking_category:"regional_university_north"}))'),'');
+});

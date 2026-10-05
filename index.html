@@ -437,7 +437,7 @@ function normalize(r){
     needAid:aidText(r.international_need_aid),
     meritAid:aidText(r.international_merit_aid),
     rank:num(r.ranking_usnews),
-    rankCategory:({national_university:"全美综合大学",national_liberal_arts_college:"全美文理学院",liberal_arts_college:"全美文理学院"})[r.ranking_category] || "",
+    rankCategory:({national_university:"全美综合大学",national_liberal_arts_college:"全美文理学院",liberal_arts_college:"全美文理学院",regional_university_north:"北部地区大学",regional_university_midwest:"中西部地区大学",regional_university_west:"西部地区大学"})[r.ranking_category] || "",
     rankYear:r.ranking_year || "",
     id:r.school_id,
     name:r.school_name_cn || r.school_name || r.school_id,
