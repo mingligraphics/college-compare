@@ -37,7 +37,7 @@ Existing eight Deep columns are untouched. The live pre-migration database has n
 
 ## Derived values
 
-`private.schools_basic_v1` is a security-invoker view containing the 40 Basic fields and three calculated fields. Region uses the approved state mapping in Basic_v1_migration. location_cn uses city_cn || state_cn, in the source's stated order, returning NULL if either input is NULL. ranking_tier uses the approved 30/50/100/200 boundaries; absent numerical rank yields unranked per the approved rule. Unknown state maps to NULL. No new derived values are stored.
+`private.schools_basic_v1` is a security-invoker view containing the 40 Basic fields and three calculated fields. Region uses the approved state mapping in Basic_v1_migration. location_cn uses city_cn || state_cn, in the source's stated order, returning NULL if either input is NULL. ranking_tier uses the approved 30/50/100/200 boundaries; absent numerical rank yields NULL (unknown), displayed as 暂无数据; unranked requires explicit authoritative evidence. Unknown state maps to NULL. No new derived values are stored.
 
 The pre-existing manual `private.schools.region` and `location_cn` columns are retained unchanged for old RPC compatibility; they are legacy values, not the canonical Basic v1 projection. The next API phase should consume the view's calculated values.
 

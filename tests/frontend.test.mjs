@@ -135,3 +135,13 @@ test('Regional ranks retain their exact regional category alongside national ran
  assert.equal(t.run('rankingText(normalize({ranking_usnews:2,ranking_category:"national_liberal_arts_college",ranking_year:2027}))'),'全美文理学院 #2');
  assert.equal(t.run('rankingText(normalize({ranking_usnews:null,ranking_category:"regional_university_north"}))'),'');
 });
+
+test('Missing ranking displays approved placeholder even with historical unranked tier', async()=>{
+ const t=await setup();
+ for (const tier of [null,'unranked']) {
+  const s=t.run(`normalize({ranking_usnews:null,ranking_category:null,ranking_year:null,ranking_tier:${JSON.stringify(tier)}})`);
+  assert.equal(s.rank,null);
+  const rendered=t.run(`metric('排名',rankingText(normalize(${JSON.stringify({ranking_usnews:null,ranking_tier:tier})})),rankingText(normalize({ranking_usnews:29,ranking_category:'national_university',ranking_year:2027})))`);
+  assert(rendered.includes('暂无数据'));assert(rendered.includes('全美综合大学 #29'));assert(!rendered.includes('unranked'));
+ }
+});
