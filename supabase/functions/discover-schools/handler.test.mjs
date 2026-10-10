@@ -1,0 +1,8 @@
+import {test} from 'node:test';import assert from 'node:assert/strict';import {createHandler,FIELDS} from './handler.mjs';
+const row=Object.fromEntries(FIELDS.map(f=>[f,f==='school_id'?'nyu':null]));
+function handler(rows=[row],ok=true){return createHandler({getEnv:n=>({SUPABASE_URL:'https://example.test',SUPABASE_SECRET_KEYS:'{"default":"test"}'}[n]),fetchImpl:async()=>new Response(JSON.stringify(rows),{status:ok?200:500})})}
+const req=body=>new Request('https://example.test',{method:'POST',headers:{'content-type':'application/json',origin:'https://mingligraphics.github.io'},body});
+test('exact allowlist removes extra fields and permits existing GitHub origin',async()=>{const r=await handler([{...row,secret:'hidden'}])(req('{}'));assert.equal(r.status,200);assert.equal(r.headers.get('access-control-allow-origin'),'https://mingligraphics.github.io');assert.deepEqual(Object.keys((await r.json())[0]),FIELDS)});
+test('rejects invalid and oversized requests',async()=>{for(const body of ['[]','null','{"field":"all"}',' '.repeat(1025)+'{}'])assert.equal((await handler()(req(body))).status,400)});
+test('rejects missing fields, duplicate IDs, and upstream failure without leaking errors',async()=>{for(const h of [handler([{}]),handler([row,row]),handler([],false)]){const r=await h(req('{}'));assert.equal(r.status,500);assert.deepEqual(await r.json(),{error:'Directory unavailable'})}});
+test('preflight does not fetch data',async()=>{const h=createHandler({getEnv:()=>undefined,fetchImpl:()=>{throw Error('must not fetch')}});assert.equal((await h(new Request('https://example.test',{method:'OPTIONS'}))).status,204)});

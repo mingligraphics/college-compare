@@ -25,3 +25,6 @@ __pycache__/
 
 # macOS metadata
 .DS_Store
+
+# Separate Sites source is synchronized to its own private source repository.
+separate-test-site/
