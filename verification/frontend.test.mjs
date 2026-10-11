@@ -4,7 +4,7 @@ test('four filters use tuition rather than COA, exact boundaries and undergradua
  const values={search:'',region:'',size:'',tuition:'',international:''};
  const schools=[4999,5000,15000,15001,null].map((n,i)=>({school_id:String(i),undergrad_enrollment:n,tuition_fees:[29999,30000,50000,70000,null][i],coa:999999,international_pct:[4.99,5,10,20,null][i],international_pct_scope:'undergraduate',school_name:'University '+i,school_name_cn:'大学'+i,short_name:i===0?'ABC':null,region:i===4?null:'east_coast'}));
  schools.push({...schools[0],school_id:'all',international_pct_scope:'all_students'});
- const ctx={schools,filtered:[],page:8,present:v=>v!==null&&v!==undefined&&v!=='',$:id=>({value:values[id]}),render:()=>{}};vm.createContext(ctx);vm.runInContext(html.match(/function internationalValue.*?(?=\nfunction render)/s)[0],ctx);
+ const ctx={schools,filtered:[],page:8,present:v=>v!==null&&v!==undefined&&v!=='',$:id=>({value:values[id]}),render:()=>{}};vm.createContext(ctx);vm.runInContext(html.match(/function internationalValue.*?(?=\nfunction fitCardNames)/s)[0],ctx);
  const run=(id,value)=>{for(const k in values)values[k]='';values[id]=value;ctx.apply();return Array.from(ctx.filtered,r=>r.school_id)};
  assert.deepEqual(run('size','medium'),['1','2']);assert.deepEqual(run('size','large'),['3']);
  for(const [key,id] of [['low','0'],['mid','1'],['high','2'],['top','3']]){assert.deepEqual(run('international',key),[id]);assert(run('tuition',key).includes(id));}
