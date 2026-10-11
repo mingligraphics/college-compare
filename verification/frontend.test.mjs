@@ -40,7 +40,7 @@ test('abbreviation badges preserve missing-name behavior and escape source text'
 test('discovery ranks sort numerically, missing last and ties deterministically',()=>{
  const ctx={present:v=>v!==null&&v!==undefined&&v!==''};vm.createContext(ctx);vm.runInContext(html.match(/function rankingNumber.*?(?=\nfunction internationalValue)/s)[0],ctx);
  const rows=[{school_id:'x',ranking_usnews:'100'},{school_id:'z',school_name:'Alpha',ranking_category:'national_university',ranking_usnews:'2'},{school_id:'a',school_name:'Alpha',ranking_category:'national_university',ranking_usnews:2},{school_id:'c',ranking_category:'national_liberal_arts_college',ranking_usnews:2},{school_id:'t',ranking_usnews:'10'},{school_id:'u',ranking_usnews:null},{school_id:'one',ranking_usnews:1}];
- const expected=['one','c','a','z','t','x','u'];assert.deepEqual([...rows].sort(ctx.compareSchoolRank).map(s=>s.school_id),expected);assert.deepEqual([...rows].reverse().sort(ctx.compareSchoolRank).map(s=>s.school_id),expected);
+ const expected=['a','z','c','one','t','x','u'];assert.deepEqual([...rows].sort(ctx.compareSchoolRank).map(s=>s.school_id),expected);assert.deepEqual([...rows].reverse().sort(ctx.compareSchoolRank).map(s=>s.school_id),expected);
  for(const v of [null,undefined,'',' ',false,0,-1,'unranked','10x',Infinity])assert.equal(ctx.rankingNumber({ranking_usnews:v}),Infinity);
- assert(html.includes('}).sort(compareSchoolRank);render()'));assert(html.includes('不同排名类别不可直接比较'));assert(html.includes('按 U.S. News 2027 排名数字升序'));
+ assert(html.includes('}).sort(compareSchoolRank);render()'));assert(html.includes('不同排名类别不可直接比较'));assert(html.includes('综合大学优先'));
 });
