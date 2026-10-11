@@ -352,7 +352,7 @@ h1{
   <div class="section-label">个性化申请支持</div>
   <section class="consult">
     <p>我们提供个性化选校与文书服务。</p><p class="consult-proof">团队成员毕业于常青藤名校，多年国际教育、写作与申请经验。</p>
-    
+
     <div class="qr-crop"><img src="./wechat-qr.jpeg" alt="微信二维码"></div>
   </section>
 
@@ -426,7 +426,7 @@ function normalize(r){
     years:r,
     signaturePrograms:Array.isArray(r.signature_programs)?r.signature_programs.map(p=>p.name_cn||p.name_en).filter(Boolean):[],
     gpa:scoreRange(r.gpa_unweighted_25,r.gpa_unweighted_75),
-    gpaContext:[({admitted_first_year:"获录取新生",enrolled_first_year:"入学新生"})[r.gpa_population]||r.gpa_population,r.gpa_year].filter(Boolean).join(" · "),
+    gpaContext:[({admitted_first_year:"获录取新生",enrolled_first_year:"入学新生"})[r.gpa_population]||r.gpa_population].filter(Boolean).join(" · "),
     acceptance:percent(r.acceptance_rate,1),
     graduation:percent(r.graduation_rate_4yr),
     sat:scoreRange(r.sat_25,r.sat_75),
@@ -504,7 +504,7 @@ function secondaryMetric(title,a,b,aSub="",bSub=""){
   const render=(value,sub)=>`<div class="metric-cell"><span class="metric-value">${value?esc(value):'<span class="metric-empty">暂无数据</span>'}</span>${value&&sub?`<span class="metric-sub">${esc(sub)}</span>`:""}</div>`;
   return `<section class="metric"><h3 class="metric-title">${esc(title)}</h3><div class="metric-cols">${render(a,aSub)}${render(b,bSub)}</div></section>`;
 }
-function rankingText(s){ return s.rank!=null ? `${s.rankCategory || "U.S. News"} #${s.rank}` : ""; }
+function rankingText(s){ return s.rank!=null && s.rankCategory ? `U.S. News · ${s.rankCategory} #${s.rank}` : ""; }
 function englishText(s){ return [s.englishPolicy,s.englishTests.length?`接受：${s.englishTests.join(" / ")}`:""].filter(Boolean).join("；"); }
 function comparisonDetail(a,b){
   const aHead=a.shortName||a.nameEn||a.name, bHead=b.shortName||b.nameEn||b.name;
@@ -514,22 +514,22 @@ function comparisonDetail(a,b){
       <div class="compare-school-head"><span class="compare-school-short">${esc(bHead)}</span><span class="compare-school-cn">${esc(b.name)}</span></div>
     </div>
     ${metric("地理位置",locationText(a),locationText(b))}
-    ${secondaryMetric("排名",rankingText(a),rankingText(b),a.years.ranking_year||"年份暂无数据",b.years.ranking_year||"年份暂无数据")}
-    ${secondaryMetric("本科生规模",enrollmentText(a),enrollmentText(b),a.years.undergrad_enrollment_year||"年份暂无数据",b.years.undergrad_enrollment_year||"年份暂无数据")}
-    ${secondaryMetric("国际生比例",a.internationalPct,b.internationalPct,a.years.international_pct_year||"年份暂无数据",b.years.international_pct_year||"年份暂无数据")}
+    ${secondaryMetric("大学排名（U.S. News）",rankingText(a),rankingText(b))}
+    ${secondaryMetric("本科生规模",enrollmentText(a),enrollmentText(b))}
+    ${secondaryMetric("国际生比例",a.internationalPct,b.internationalPct)}
     ${metric("优势专业",a.signaturePrograms,b.signaturePrograms)}
-    ${secondaryMetric("录取率",a.acceptance,b.acceptance,a.years.admissions_year||"年份暂无数据",b.years.admissions_year||"年份暂无数据")}
-    ${secondaryMetric("标化政策",a.testPolicy,b.testPolicy,a.years.test_policy_cycle||"年份暂无数据",b.years.test_policy_cycle||"年份暂无数据")}
-    ${secondaryMetric("SAT（25–75百分位）",a.sat,b.sat,a.years.admissions_year||"年份暂无数据",b.years.admissions_year||"年份暂无数据")}
-    ${secondaryMetric("ACT（25–75百分位）",a.act,b.act,a.years.admissions_year||"年份暂无数据",b.years.admissions_year||"年份暂无数据")}
+    ${secondaryMetric("录取率",a.acceptance,b.acceptance)}
+    ${secondaryMetric("标化政策",a.testPolicy,b.testPolicy)}
+    ${secondaryMetric("SAT（25–75百分位）",a.sat,b.sat)}
+    ${secondaryMetric("ACT（25–75百分位）",a.act,b.act)}
     ${secondaryMetric("未加权 GPA（25–75百分位）",a.gpa,b.gpa,a.gpaContext,b.gpaContext)}
-    ${secondaryMetric("英语要求",englishText(a),englishText(b),a.years.english_policy_cycle||"年份暂无数据",b.years.english_policy_cycle||"年份暂无数据")}
-    ${secondaryMetric("学杂费",moneyRmbWan(a.tuition),moneyRmbWan(b.tuition),a.tuitionYear?`${a.tuitionYear} 学年`:"",b.tuitionYear?`${b.tuitionYear} 学年`:"")}
-    ${secondaryMetric("总费用",moneyRmbWan(a.coa),moneyRmbWan(b.coa),a.coaYear||"年份暂无数据",b.coaYear||"年份暂无数据")}
+    ${secondaryMetric("英语要求",englishText(a),englishText(b))}
+    ${secondaryMetric("学杂费",moneyRmbWan(a.tuition),moneyRmbWan(b.tuition))}
+    ${secondaryMetric("总费用",moneyRmbWan(a.coa),moneyRmbWan(b.coa))}
     <p class="currency-note">人民币金额为估算，按固定参考汇率 7 换算。</p>
     ${metric("国际生助学金",a.needAid,b.needAid)}
     ${metric("国际生奖学金",a.meritAid,b.meritAid)}
-    ${secondaryMetric("四年毕业率",a.graduation,b.graduation,a.years.graduation_rate_4yr_year||"年份暂无数据",b.years.graduation_rate_4yr_year||"年份暂无数据")}
+    ${secondaryMetric("四年毕业率",a.graduation,b.graduation)}
   </div>`;
 }
 
@@ -599,7 +599,7 @@ document.getElementById("go").addEventListener("click",async ()=>{
   }
   const go=document.getElementById("go");
   const version=selectionVersion;
-  
+
   comparing=true;
   go.disabled=true;
   go.textContent="正在比较…";

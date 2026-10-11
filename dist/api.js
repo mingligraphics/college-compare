@@ -1,6 +1,6 @@
 const CollegeAPI = (() => {
  const base='https://hmnoqybdcfwqbjhorwzd.supabase.co/functions/v1/';
- const fields=['school_id','school_name','school_name_cn','short_name','city','city_cn','state','state_cn','region','school_type','undergrad_enrollment','undergrad_enrollment_year','acceptance_rate','admissions_year','coa','coa_year','tuition_fees','tuition_fees_year','international_pct','international_pct_year','international_pct_scope'];
+ const fields=['school_id','school_name','school_name_cn','short_name','city','city_cn','state','state_cn','region','school_type','undergrad_enrollment','undergrad_enrollment_year','acceptance_rate','admissions_year','coa','coa_year','tuition_fees','tuition_fees_year','international_pct','international_pct_year','international_pct_scope','institution_control','ranking_usnews','ranking_category'];
  const cache=new Map();
  async function request(endpoint,body){
   const response=await fetch(base+endpoint,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body),signal:AbortSignal.timeout(15000),cache:'no-store'});
