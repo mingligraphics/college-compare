@@ -1,0 +1,59 @@
+{
+  "directory_count": 299,
+  "fields": [
+    "school_id",
+    "school_name",
+    "school_name_cn",
+    "short_name",
+    "city",
+    "city_cn",
+    "state",
+    "state_cn",
+    "region",
+    "school_type",
+    "undergrad_enrollment",
+    "undergrad_enrollment_year",
+    "acceptance_rate",
+    "admissions_year",
+    "coa",
+    "coa_year",
+    "tuition_fees",
+    "tuition_fees_year"
+  ],
+  "cors": "https://mingligraphics.github.io",
+  "tests": [
+    {
+      "pair": [
+        "nyu",
+        "bu"
+      ],
+      "status": 200,
+      "fields": 57,
+      "directory_match": true
+    },
+    {
+      "pair": [
+        "bu",
+        "nyu"
+      ],
+      "status": 200,
+      "fields": 57,
+      "directory_match": true
+    },
+    {
+      "pair": [
+        "us_164465",
+        "us_164580"
+      ],
+      "status": 200,
+      "fields": 57,
+      "directory_match": true
+    },
+    {
+      "invalid_request_status": 400
+    },
+    {
+      "invalid_request_status": 404
+    }
+  ]
+}

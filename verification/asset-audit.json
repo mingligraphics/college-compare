@@ -1,0 +1,18 @@
+{
+  "archive_files": [
+    "._dist",
+    "dist",
+    "dist/._server",
+    "dist/server",
+    "dist/._.openai",
+    "dist/.openai",
+    "dist/.openai/._hosting.json",
+    "dist/.openai/hosting.json",
+    "dist/server/._index.js",
+    "dist/server/index.js"
+  ],
+  "sha256": "2e227c09b4a6bef3c744b6131118b2dac39c0ab9c3dd569dacef82997285e7dd",
+  "snapshot_scan": "pass",
+  "secret_scan": "pass",
+  "source_match": true
+}

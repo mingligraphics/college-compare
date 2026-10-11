@@ -419,3 +419,9 @@ verify_jwt = false
 
 [functions.compare-schools-basic-v2]
 verify_jwt = false
+
+[functions.discover-schools]
+verify_jwt = false
+
+[functions.discover-schools-test]
+verify_jwt = false
