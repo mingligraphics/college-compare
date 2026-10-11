@@ -320,12 +320,13 @@ h1{
 .profile-stats{display:flex;flex-wrap:wrap;gap:8px 16px;margin-top:12px}.profile-stat strong{display:block;font-size:17px;color:#222}.profile-stat span{font-size:12px;color:#777}
 .metric-sub{display:block;font-size:12px;font-weight:400;color:#777;margin-top:5px}.currency-note{font-size:12px;color:#777;padding:0 16px}
 @media(max-width:480px){.profile-grid{gap:14px}.profile-name{font-size:15px}.profile-stats{display:grid;gap:8px}.profile-stat strong{font-size:16px}}
+.status:empty,.error:empty{display:none}.currency-note{margin:12px 0}
 </style>
 </head>
 <body>
 <main>
 <header>
-  <h1 class="site-title"><span class="cap-icon" aria-hidden="true"><svg viewBox="0 0 64 64" focusable="false"><path d="M4 24 32 10l28 14-28 14L4 24Zm12 7.5V43c0 5 7.2 9 16 9s16-4 16-9V31.5L32 40 16 31.5Zm39-3.2v15.8c0 1.6 1.3 2.9 2.9 2.9s2.9-1.3 2.9-2.9V25.4L55 28.3Z"/></svg></span><span>美国大学选校对比</span></h1><p class="subtitle"><span id="schoolCount">美国高校官方数据</span><span>用数据，找到更适合你的大学</span></p>
+  <h1 class="site-title"><span class="cap-icon" aria-hidden="true"><svg viewBox="0 0 64 64" focusable="false"><path d="M4 24 32 10l28 14-28 14L4 24Zm12 7.5V43c0 5 7.2 9 16 9s16-4 16-9V31.5L32 40 16 31.5Zm39-3.2v15.8c0 1.6 1.3 2.9 2.9 2.9s2.9-1.3 2.9-2.9V25.4L55 28.3Z"/></svg></span><span>美国大学选校对比</span></h1>
 </header>
 
 <section class="picker">
@@ -344,6 +345,7 @@ h1{
   <div class="section-label">选校指南</div>
   <section class="summary">
     <div id="summaryText" class="profile-grid"></div>
+    <p class="currency-note">固定估算：1 USD≈7 CNY（非实时）</p>
   </section>
 
   <div class="section-label">学校对比</div>
@@ -351,23 +353,20 @@ h1{
 
   <div class="section-label">个性化申请支持</div>
   <section class="consult">
-    <p>我们提供个性化选校与文书服务。</p><p class="consult-proof">团队成员毕业于常青藤名校，多年国际教育、写作与申请经验。</p>
+
 
     <div class="qr-crop"><img src="./wechat-qr.jpeg" alt="微信二维码"></div>
   </section>
 
-  <section class="sources">
-    <h2>数据说明</h2>
-    <p class="muted">大学目录通过 Supabase 限定字段接口获取。详细比较数据通过服务器接口按所选两所学校获取。</p>
-  </section>
+
 </section>
 </main>
 
 <div class="school-modal" id="schoolModal" hidden>
   <div class="school-sheet" role="dialog" aria-modal="true">
     <div class="sheet-handle"></div>
-    <div class="sheet-head"><h2 id="sheetTitle">选择一所大学</h2><button type="button" id="sheetClose" class="sheet-close">×</button></div>
-    <input type="search" id="schoolSearch" class="school-search" placeholder="搜索学校名称、英文或简称" autocomplete="off">
+    <div class="sheet-head"><h2 id="sheetTitle">选择一所大学</h2><button type="button" id="sheetClose" aria-label="关闭学校选择" class="sheet-close">×</button></div>
+    <input aria-label="搜索大学" type="search" id="schoolSearch" class="school-search" placeholder="搜索学校名称、英文或简称" autocomplete="off">
     <div class="result-label" id="resultLabel">热门学校</div>
     <div id="schoolList" class="school-list"></div>
   </div>
@@ -526,7 +525,7 @@ function comparisonDetail(a,b){
     ${secondaryMetric("英语要求",englishText(a),englishText(b))}
     ${secondaryMetric("学杂费",moneyRmbWan(a.tuition),moneyRmbWan(b.tuition))}
     ${secondaryMetric("总费用",moneyRmbWan(a.coa),moneyRmbWan(b.coa))}
-    <p class="currency-note">人民币金额为估算，按固定参考汇率 7 换算。</p>
+    <p class="currency-note">COA：国际生额外费用未核验。</p>
     ${metric("国际生助学金",a.needAid,b.needAid)}
     ${metric("国际生奖学金",a.meritAid,b.meritAid)}
     ${secondaryMetric("四年毕业率",a.graduation,b.graduation)}
@@ -561,8 +560,8 @@ async function loadData(){
     fillSelectors(list);
     const params=new URLSearchParams(location.search),a=params.get('a'),b=params.get('b');
     if(a&&b&&a!==b&&schools[a]&&schools[b]){document.getElementById('a').value=a;document.getElementById('b').value=b;document.getElementById('triggerAText').textContent=schools[a].name;document.getElementById('triggerBText').textContent=schools[b].name;document.getElementById('go').click()}
-    document.getElementById("schoolCount").textContent=`${Object.keys(schools).length}所美国高校官方数据`;
-    status.textContent=`已读取 ${list.length} 所学校`;
+
+    status.textContent="";
     if(list.length<2) err.textContent="当前数据库只有一所学校；加入第二所学校后即可开始比较。";
   } catch(e){
     console.error(e);

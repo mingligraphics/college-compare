@@ -9,7 +9,7 @@ test('four filters use tuition rather than COA, exact boundaries and undergradua
  assert.deepEqual(run('size','medium'),['1','2']);assert.deepEqual(run('size','large'),['3']);
  for(const [key,id] of [['low','0'],['mid','1'],['high','2'],['top','3']]){assert.deepEqual(run('international',key),[id]);assert(run('tuition',key).includes(id));}
  assert.equal(run('tuition','').length,6);assert(!run('tuition','top').includes('4'));assert.deepEqual(run('search','abc'),['0','all']);assert.deepEqual(run('search','大学2'),['2']);assert.equal(ctx.page,1);
- const labels=[...html.matchAll(/<label>([^<]+)<select/g)].map(m=>m[1]);assert.deepEqual(labels,['地理位置','每年学费（人民币）','本科生规模','国际生比例']);assert.doesNotMatch(html,/<option[^>]*>暂无数据|new Option\('暂无数据'/);
+ const labels=[...html.matchAll(/<label>([^<]+)<select/g)].map(m=>m[1]);assert.deepEqual(labels,['地理位置','每年学杂费（人民币）','本科生规模','国际生比例']);assert.doesNotMatch(html,/<option[^>]*>暂无数据|new Option\('暂无数据'/);
 });
 test('pair transport caches only selected pair and rejects reversed or malformed responses',async()=>{
  let calls=0;const store=new Map();const ctx={fetch:async()=>{calls++;return {ok:true,json:async()=>[{school_id:'nyu'},{school_id:'bu'}]}},AbortSignal,sessionStorage:{getItem:k=>store.get(k),setItem:(k,v)=>store.set(k,v)},Date,Map};vm.createContext(ctx);vm.runInContext(fs.readFileSync('dist/api.js','utf8')+';this.api=CollegeAPI',ctx);await ctx.api.pair('nyu','bu');await ctx.api.pair('nyu','bu');assert.equal(calls,1);await assert.rejects(()=>ctx.api.pair('bu','nyu'));await assert.rejects(()=>ctx.api.pair('nyu','nyu'));
@@ -42,5 +42,5 @@ test('discovery ranks sort numerically, missing last and ties deterministically'
  const rows=[{school_id:'x',ranking_usnews:'100'},{school_id:'z',school_name:'Alpha',ranking_category:'national_university',ranking_usnews:'2'},{school_id:'a',school_name:'Alpha',ranking_category:'national_university',ranking_usnews:2},{school_id:'c',ranking_category:'national_liberal_arts_college',ranking_usnews:2},{school_id:'t',ranking_usnews:'10'},{school_id:'u',ranking_usnews:null},{school_id:'one',ranking_usnews:1}];
  const expected=['a','z','c','one','t','x','u'];assert.deepEqual([...rows].sort(ctx.compareSchoolRank).map(s=>s.school_id),expected);assert.deepEqual([...rows].reverse().sort(ctx.compareSchoolRank).map(s=>s.school_id),expected);
  for(const v of [null,undefined,'',' ',false,0,-1,'unranked','10x',Infinity])assert.equal(ctx.rankingNumber({ranking_usnews:v}),Infinity);
- assert(html.includes('}).sort(compareSchoolRank);render()'));assert(html.includes('不同排名类别不可直接比较'));assert(html.includes('综合大学优先'));
+ assert(html.includes('}).sort(compareSchoolRank);render()'));assert(html.includes('summaryRanking(s)'));assert(html.includes('U.S. News 2027'));assert(html.includes('固定估算：1 USD≈7 CNY（非实时）'));
 });
