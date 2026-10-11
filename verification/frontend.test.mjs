@@ -42,5 +42,5 @@ test('discovery ranks sort numerically, missing last and ties deterministically'
  const rows=[{school_id:'x',ranking_usnews:'100'},{school_id:'z',school_name:'Alpha',ranking_category:'national_university',ranking_usnews:'2'},{school_id:'a',school_name:'Alpha',ranking_category:'national_university',ranking_usnews:2},{school_id:'c',ranking_category:'national_liberal_arts_college',ranking_usnews:2},{school_id:'t',ranking_usnews:'10'},{school_id:'u',ranking_usnews:null},{school_id:'one',ranking_usnews:1}];
  const expected=['a','z','c','one','t','x','u'];assert.deepEqual([...rows].sort(ctx.compareSchoolRank).map(s=>s.school_id),expected);assert.deepEqual([...rows].reverse().sort(ctx.compareSchoolRank).map(s=>s.school_id),expected);
  for(const v of [null,undefined,'',' ',false,0,-1,'unranked','10x',Infinity])assert.equal(ctx.rankingNumber({ranking_usnews:v}),Infinity);
- assert(html.includes('}).sort(compareSchoolRank);render()'));assert(html.includes('summaryRanking(s)'));assert(html.includes('U.S. News 2027'));assert(html.includes('固定估算：1 USD≈7 CNY（非实时）'));
+ assert(html.includes('}).sort(compareSchoolRank);render()'));assert(html.includes('summaryRanking(s)'));assert(!html.includes('<h2>U.S. News 2027'));assert(html.includes('固定估算：1 USD≈7 CNY（非实时）'));
 });
